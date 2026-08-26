@@ -27,4 +27,10 @@ First release.
   consistency ratio reported rather than enforced.
 - `compare_methods()` — every method's ranking side by side, so cross-method
   disagreement is visible instead of hidden behind one number.
-- Reversal benchmark under `benchmarks/`, reproducing the published table.
+- Reversal benchmark under `benchmarks/`, measuring SPOTIS at 0.0% against
+  18-34% for the comparison-based methods, and pinned as a test so the
+  headline claim cannot regress unnoticed.
+- SPOTIS and TOPSIS cross-validated against `pymcdm` 1.4.0 to 1e-12. TOPSIS
+  differs from pymcdm's *default* only because pymcdm normalises min-max where
+  this package uses Hwang and Yoon's vector normalisation; told to use vector
+  normalisation, the two agree exactly.
