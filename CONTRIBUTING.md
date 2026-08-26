@@ -51,6 +51,48 @@ If vulture flags something that *is* used — via a test, a doc example, or a
 plugin — add it to `.vulture-allowlist.py` **with the reason**. An allowlist
 of unexplained names stops being a check.
 
+## Documentation
+
+The site is Sphinx with MyST, so pages are Markdown. Build it locally:
+
+```bash
+pip install -e ".[docs]"
+sphinx-build -b html -W docs docs/_build/html
+open docs/_build/html/index.html
+```
+
+`-W` turns warnings into errors, which is what CI and the hosting build both
+use. A broken cross-reference fails the build rather than shipping a dead link.
+
+Where things go:
+
+| Page | For |
+|---|---|
+| `docs/quickstart.md` | Someone who has just installed it |
+| `docs/stability.md` | Rank reversal, SPOTIS, sensitivity — the *why* |
+| `docs/extending.md` | Writing and shipping a method |
+| `docs/api.md` | Generated reference; add an `automodule` entry for new modules |
+| `docs/adr/` | Decisions with consequences, and their costs |
+
+Two rules the tests enforce: every name in `mcdakit.__all__` must appear in
+`docs/api.md`, and every public callable needs a docstring. A name nobody can
+find in the docs is a name nobody uses.
+
+### Hosting
+
+Two configurations are committed, and they are **alternatives — pick one**:
+
+- `.readthedocs.yaml` — Read the Docs. Gives versioned docs (one build per
+  git tag), a search index, and PDF output. The convention in scientific
+  Python, and what a researcher will look for first. Needs an account at
+  readthedocs.org and the repository imported there.
+- `.github/workflows/docs.yml` — GitHub Pages. No third-party account; enable
+  under Settings → Pages → Source: GitHub Actions. Publishes `main` only, so
+  there is no version switcher.
+
+Running both means two URLs that drift apart, and readers finding whichever
+ranks higher in search. Delete the one you are not using.
+
 ## House rules
 
 These are not style preferences; each one is load-bearing.

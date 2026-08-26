@@ -42,6 +42,35 @@
    :members: register, unregister, get, has, names, available, DuplicateMethodError, PluginLoadError
 ```
 
+At the top level these are re-exported under names that read better next to
+the rest of the API:
+
+```{eval-rst}
+.. py:data:: mcdakit.METHODS
+
+   Every registered method name — built-in and plugin alike. A live view of
+   the registry rather than a snapshot, so a method registered at any point is
+   immediately visible. Behaves like the tuple it reads as: ``in``, iteration,
+   indexing, ``len`` and ``==`` all work.
+
+.. py:function:: mcdakit.get_method(name)
+
+   Alias of :func:`mcdakit.methods.registry.get`.
+
+.. py:function:: mcdakit.has_method(name)
+
+   Alias of :func:`mcdakit.methods.registry.has`.
+
+.. py:function:: mcdakit.method_names()
+
+   Alias of :func:`mcdakit.methods.registry.names`.
+
+.. py:data:: mcdakit.BUILTIN_METHODS
+
+   The eight :class:`~mcdakit.Method` classes this package ships, in reading
+   order: simplest first, the reversal-free one last.
+```
+
 ## Conformance testing
 
 ```{eval-rst}
@@ -76,6 +105,42 @@
 ```{eval-rst}
 .. automodule:: mcdakit.normalization
    :members: normalize, register_normalization, get_normalization, available_normalizations, vector_normalization, minmax_normalization, max_normalization, sum_normalization
+```
+
+## Constants
+
+```{eval-rst}
+.. py:data:: mcdakit.FRAGILE_THRESHOLD
+
+   ``0.10``. Below this weight tolerance, :func:`~mcdakit.sensitivity` calls a
+   decision *fragile*: a re-weighting smaller than a tenth of the total
+   unseats the winner.
+
+.. py:data:: mcdakit.ROBUST_THRESHOLD
+
+   ``0.25``. At or above this, the winner survives any plausible
+   single-criterion disagreement and is reported as *robust*.
+
+.. py:data:: mcdakit.CONSISTENCY_LIMIT
+
+   ``0.10``. Saaty's rule of thumb: above this consistency ratio the pairwise
+   judgements contradict each other badly enough that the derived weights
+   should not be relied on. Reported, never enforced.
+
+.. py:data:: mcdakit.RANDOM_INDEX
+
+   Saaty's random consistency index by matrix order — the average consistency
+   index of a randomly filled *n* × *n* reciprocal matrix. Dividing by it is
+   what makes the consistency ratio comparable across problem sizes.
+
+.. py:data:: mcdakit.SAATY_SCALE
+
+   The fundamental 1–9 comparison scale, as ``{ratio: meaning}``.
+
+.. py:data:: mcdakit.NORMALIZATIONS
+
+   Registered normalisation schemes, as ``{name: (function, summary)}``. Use
+   :func:`~mcdakit.available_normalizations` for the readable form.
 ```
 
 ## Orientation

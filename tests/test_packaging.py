@@ -119,3 +119,41 @@ class TestConformanceCli:
             cwd=ROOT,
         )
         assert result.returncode == 0, result.stdout + result.stderr
+
+
+class TestDocumentation:
+    def test_every_public_name_appears_in_the_api_reference(self):
+        """An exported name absent from the docs is one nobody can discover.
+
+        Matched against docs/api.md rather than a built site, so the check
+        needs no Sphinx run; names may be written bare or qualified.
+        """
+        api = (ROOT / "docs" / "api.md").read_text()
+        missing = [
+            name
+            for name in mcdakit.__all__
+            if not name.startswith("__")
+            and name not in api
+            and f"mcdakit.{name}" not in api
+        ]
+        assert not missing, f"undocumented in docs/api.md: {missing}"
+
+    def test_every_public_callable_has_a_docstring(self):
+        import inspect
+
+        undocumented = [
+            name
+            for name in mcdakit.__all__
+            if (
+                inspect.isfunction(obj := getattr(mcdakit, name, None))
+                or inspect.isclass(obj)
+            )
+            and not (obj.__doc__ or "").strip()
+        ]
+        assert not undocumented
+
+    def test_the_guides_are_wired_into_the_toctree(self):
+        """A page absent from index.md builds but is unreachable."""
+        index = (ROOT / "docs" / "index.md").read_text()
+        for page in ("quickstart", "stability", "extending", "api"):
+            assert page in index, f"{page} is not in the toctree"
