@@ -240,8 +240,34 @@ install, with no import needed by the user:
 my_method = "my_package.methods:MyMethod"
 ```
 
-The full contract — reporting caveats, refusing problems, accepting options —
-is in [`docs/extending.md`](docs/extending.md).
+Before publishing a method, check it:
+
+```bash
+python -m mcdakit.testing my_package.methods:MyMethod
+```
+
+That runs thirteen properties every sound method holds, catching the failures
+that are otherwise silent — a smallest-is-best measure returned without
+negating (every ranking upside down), a NaN on a criterion every option scores
+alike, criterion direction handled twice. Every built-in passes it and CI
+enforces that.
+
+### Normalisation is swappable too
+
+Putting a price spanning 900 and a rating spanning 3 onto one scale is a
+modelling decision, not preprocessing — it can change the winner *and* how
+stable the ranking is:
+
+```python
+rank(matrix, criteria, method="topsis", normalization="minmax")
+```
+
+Built in: `vector`, `minmax`, `max`, `sum`. Each method defaults to the scheme
+it was defined with, so you get the textbook method unless you ask otherwise.
+Register your own with `@register_normalization("name")`, or pass any callable.
+
+The full contract — reporting caveats, refusing problems, accepting options,
+what is *not* yet extensible — is in [`docs/extending.md`](docs/extending.md).
 
 ## What this is not
 

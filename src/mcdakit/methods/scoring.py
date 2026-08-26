@@ -18,7 +18,9 @@ def simple_scoring(data: np.ndarray, weights: np.ndarray | None = None) -> np.nd
     return np.sum(data, axis=1).astype(float)
 
 
-def weighted_scoring(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
+def weighted_scoring(
+    data: np.ndarray, weights: np.ndarray, normalization: str = "minmax"
+) -> np.ndarray:
     """Weighted sum over min-max normalised scores.
 
     Each criterion is first scaled to ``[0, 1]`` across the options being
@@ -36,15 +38,14 @@ def weighted_scoring(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
         return np.zeros(data.shape[0])
     normalized_weights = weights / w_sum
 
-    col_min = np.min(data, axis=0)
-    col_max = np.max(data, axis=0)
-    span = col_max - col_min
-    span[span == 0] = 1.0
-    normalized = (data - col_min) / span
-    return (normalized @ normalized_weights).astype(float)
+    from ..normalization import normalize as _normalize
+
+    return (_normalize(data, normalization) @ normalized_weights).astype(float)
 
 
-def saw(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
+def saw(
+    data: np.ndarray, weights: np.ndarray, normalization: str = "max"
+) -> np.ndarray:
     """Simple Additive Weighting (Churchman and Ackoff, 1954).
 
     ``r_ij = x_ij / max_j``, then ``sum_j w_j * r_ij``. Differs from
@@ -57,11 +58,9 @@ def saw(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
         return np.zeros(data.shape[0])
     w = weights / w_sum
 
-    col_max = np.max(data, axis=0)
-    col_max = np.where(col_max == 0, 1.0, col_max)
-    normalized = data / col_max
+    from ..normalization import normalize as _normalize
 
-    return (normalized @ w).astype(float)
+    return (_normalize(data, normalization) @ w).astype(float)
 
 
 class SimpleScoring(Method):
@@ -80,8 +79,10 @@ class WeightedScoring(Method):
     name = "weighted_scoring"
     summary = "Weighted sum over min-max normalised scores."
 
+    normalization = "minmax"
+
     def score(self, ctx: ScoringContext) -> np.ndarray:
-        return weighted_scoring(ctx.data, ctx.weights)
+        return weighted_scoring(ctx.data, ctx.weights, ctx.normalization)
 
 
 class Saw(Method):
@@ -91,5 +92,7 @@ class Saw(Method):
     summary = "Simple Additive Weighting; normalises by the column maximum."
     citation = "Churchman and Ackoff (1954)"
 
+    normalization = "max"
+
     def score(self, ctx: ScoringContext) -> np.ndarray:
-        return saw(ctx.data, ctx.weights)
+        return saw(ctx.data, ctx.weights, ctx.normalization)

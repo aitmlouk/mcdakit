@@ -259,19 +259,17 @@ def _check_returns_a_supported_type(method: Method):
     decision = _problem([[1.0, 2.0], [3.0, 4.0]])
     from .methods.base import ScoringContext
 
-    ctx = ScoringContext(
-        data=np.asarray(decision.matrix, dtype=float),
-        weights=decision.weights,
-        decision=decision,
-    )
+    data = np.asarray(decision.matrix, dtype=float)
     if method.wants is not Wants.RAW:
         from .orientation import orient
 
-        ctx = ScoringContext(
-            data=orient(decision.matrix, decision.directions),
-            weights=decision.weights,
-            decision=decision,
-        )
+        data = orient(decision.matrix, decision.directions)
+    ctx = ScoringContext(
+        data=data,
+        weights=decision.weights,
+        decision=decision,
+        _normalization=method.normalization,
+    )
     try:
         _as_method_result(method.score(ctx))
     except Exception as exc:  # pragma: no cover - defensive

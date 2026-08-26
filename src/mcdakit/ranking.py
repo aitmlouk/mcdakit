@@ -65,7 +65,12 @@ def as_decision(
     return Decision(matrix, criteria, labels)
 
 
-def score(decision: Decision, method: str = "weighted_scoring", **kwargs):
+def score(
+    decision: Decision,
+    method: str = "weighted_scoring",
+    normalization: str | None = None,
+    **kwargs,
+):
     """Raw scores for one method, without wrapping them in a :class:`Result`.
 
     Returns ``(scores, reversal_free, messages)``. Mostly useful internally —
@@ -84,11 +89,19 @@ def score(decision: Decision, method: str = "weighted_scoring", **kwargs):
     else:
         data = orient(decision.matrix, decision.directions)
 
+    if normalization is not None and implementation.normalization is None:
+        raise McdaError(
+            f"Method {method!r} does not normalise, so normalization="
+            f"{normalization!r} would have no effect. Methods that do: "
+            f"{', '.join(sorted(m.name for m in _methods_that_normalize()))}."
+        )
+
     ctx = ScoringContext(
         data=data,
         weights=decision.weights,
         decision=decision,
         options=kwargs,
+        _normalization=normalization or implementation.normalization,
     )
     result = _as_method_result(implementation.score(ctx))
 
@@ -125,6 +138,7 @@ def rank(
     criteria: Sequence[Criterion] | None = None,
     method: str = "weighted_scoring",
     labels: Sequence[str] | None = None,
+    normalization: str | None = None,
     **kwargs,
 ) -> Result:
     """Rank the options in a decision matrix.
@@ -160,7 +174,9 @@ def rank(
     'B'
     """
     decision = as_decision(matrix, criteria, labels)
-    scores, reversal_free, messages = score(decision, method, **kwargs)
+    scores, reversal_free, messages = score(
+        decision, method, normalization=normalization, **kwargs
+    )
     return Result(
         decision=decision,
         method=method,
@@ -254,3 +270,10 @@ def reversal_check(
             )
 
     return {"reversed": bool(cases), "cases": cases}
+
+
+def _methods_that_normalize():
+    """Registered methods with a normalisation to override."""
+    from .methods.registry import methods as _iter
+
+    return [m for m in _iter() if m.normalization is not None]

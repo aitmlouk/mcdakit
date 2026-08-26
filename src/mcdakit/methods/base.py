@@ -82,6 +82,10 @@ class ScoringContext:
     decision: Decision
     options: dict = field(default_factory=dict)
 
+    #: The normalisation in force — the caller's override if given, else the
+    #: method's declared default. Applied through :meth:`normalize`.
+    _normalization: str | None = None
+
     # Names of the attributes a method has actually read. A mutable box on a
     # frozen dataclass, because observing a read must not require the context
     # to be rebuilt. Used to catch two mistakes that are otherwise silent:
@@ -149,6 +153,27 @@ class ScoringContext:
     @property
     def n_criteria(self) -> int:
         return int(self.data.shape[1])
+
+    def normalize(self, data: np.ndarray | None = None) -> np.ndarray:
+        """Apply the normalisation in force for this call.
+
+        The caller's ``normalization=`` if they gave one, otherwise the
+        method's own default. Use this rather than normalising inline, so a
+        method's scheme stays swappable and every zero-column guard lives in
+        one place.
+        """
+        from ..normalization import normalize as _normalize
+
+        matrix = self.data if data is None else data
+        scheme = self.normalization
+        if scheme is None:
+            return np.asarray(matrix, dtype=float)
+        return _normalize(matrix, scheme)
+
+    @property
+    def normalization(self):
+        """The scheme in force: the caller's override, or the method's."""
+        return self._normalization
 
     @property
     def normalized_weights(self) -> np.ndarray:
@@ -224,6 +249,13 @@ class Method:
     citation: str = ""
     wants: Wants = Wants.ORIENTED
     reversal_free: bool = False
+
+    #: The normalisation this method is defined with — a name from
+    #: :mod:`mcdakit.normalization`, or ``None`` for a method that does not
+    #: normalise. Callers override it with ``rank(..., normalization=...)``,
+    #: which is a real modelling choice: the ranking can change. Read it in
+    #: :meth:`score` through ``ctx.normalize(data)``.
+    normalization: str | None = None
 
     def score(self, ctx: ScoringContext):
         """Score every option. Higher must mean better.

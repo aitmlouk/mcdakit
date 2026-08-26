@@ -11,7 +11,9 @@ import numpy as np
 from .base import Method, ScoringContext
 
 
-def topsis(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
+def topsis(
+    data: np.ndarray, weights: np.ndarray, normalization: str = "vector"
+) -> np.ndarray:
     """Closeness to the ideal solution, in ``[0, 1]``, higher is better.
 
     Vector-normalise (``r_ij = x_ij / sqrt(sum_i x_ij^2)``), weight, then take
@@ -39,11 +41,9 @@ def topsis(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
         return np.zeros(n_alt)
     w = weights / w_sum
 
-    col_norms = np.sqrt(np.sum(data**2, axis=0))
-    col_norms = np.where(col_norms == 0, 1.0, col_norms)
-    normalized = data / col_norms
+    from ..normalization import normalize as _normalize
 
-    v = normalized * w
+    v = _normalize(data, normalization) * w
 
     ideal_best = np.max(v, axis=0)
     ideal_worst = np.min(v, axis=0)
@@ -63,5 +63,7 @@ class Topsis(Method):
     summary = "Closeness to the ideal solution, by vector normalisation."
     citation = "Hwang and Yoon (1981)"
 
+    normalization = "vector"
+
     def score(self, ctx: ScoringContext) -> np.ndarray:
-        return topsis(ctx.data, ctx.weights)
+        return topsis(ctx.data, ctx.weights, ctx.normalization)

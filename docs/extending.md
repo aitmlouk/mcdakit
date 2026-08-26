@@ -301,6 +301,86 @@ def test_it_is_reversal_free():
 `benchmarks/reversal.py` measures the same property across many random
 problems, and takes any registered method.
 
+## Extending beyond methods
+
+A ranking method is the most common extension, but not the only one.
+
+### Normalisation schemes
+
+Putting a price spanning 900 and a rating spanning 3 onto a common scale is a
+*modelling* decision, not preprocessing. Which scheme you pick changes the
+numbers, sometimes the winner, and — as the rank-reversal literature shows —
+how stable the ranking is. So schemes are named and swappable:
+
+```python
+from mcdakit import rank, available_normalizations
+
+available_normalizations()
+# {'vector': ..., 'minmax': ..., 'max': ..., 'sum': ...}
+
+rank(matrix, criteria, method="topsis", normalization="minmax")
+```
+
+Each method declares the scheme it is *defined* with — `topsis` is `vector`,
+`saw` is `max`, `weighted_scoring` is `minmax` — so the default reproduces the
+textbook method, and overriding is an explicit choice.
+
+Register your own the same way you register a method:
+
+```python
+import numpy as np
+from mcdakit import register_normalization
+
+@register_normalization("logistic", summary="Logistic squash about the mean.")
+def logistic(data):
+    spread = np.where(data.std(axis=0) == 0, 1.0, data.std(axis=0))
+    return 1 / (1 + np.exp(-(data - data.mean(axis=0)) / spread))
+
+rank(matrix, criteria, method="topsis", normalization="logistic")
+```
+
+A scheme receives an already-oriented matrix and returns one of the same
+shape. Give a column that cannot discriminate — every option alike, or all
+zeros — a constant rather than dividing by zero; the library raises if a
+scheme returns NaN, because one poisoned column would corrupt the ranking of
+every other criterion too.
+
+A one-off scheme needs no registration at all — pass the callable:
+
+```python
+rank(matrix, criteria, method="topsis", normalization=my_function)
+```
+
+Inside a method, reach it through the context rather than normalising inline,
+so your method stays swappable too:
+
+```python
+def score(self, ctx):
+    return ctx.normalize() @ ctx.normalized_weights
+```
+
+Methods that must *not* be swappable say so by leaving `normalization = None`.
+SPOTIS does: its reversal-freedom rests on scaling against fixed bounds rather
+than the observed options, so substituting another scheme would silently
+destroy the guarantee. Passing `normalization=` to such a method raises rather
+than being ignored.
+
+### What is not yet extensible
+
+Being straight about the limits, since the answer shapes what you can build:
+
+| Extension point | Status |
+|---|---|
+| Ranking methods | Registry + entry points |
+| Normalisation schemes | Registry, or a bare callable |
+| Weighting schemes | `ahp_weights()` only; no registry — compute weights yourself and pass them on `Criterion` |
+| Group aggregation | Not supported; aggregate matrices or weights before calling `rank()` |
+| Sensitivity analyses | `sensitivity()` only; not pluggable |
+
+Weights and aggregation are plain data going in, so you are not blocked —
+you just do not get a name, discovery, or the conformance suite. If you want
+either as a real extension point, open an issue saying what you are building.
+
 ## Contributing a method upstream
 
 A plugin needs nothing from us. If a method belongs in `mcdakit` itself —

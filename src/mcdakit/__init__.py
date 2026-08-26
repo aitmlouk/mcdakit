@@ -52,6 +52,16 @@ from .methods import (
 from .methods import get as get_method
 from .methods import has as has_method
 from .methods import names as method_names
+from .normalization import (
+    NORMALIZATIONS,
+    available_normalizations,
+    get_normalization,
+    max_normalization,
+    minmax_normalization,
+    register_normalization,
+    sum_normalization,
+    vector_normalization,
+)
 from .orientation import orient
 from .ranking import (
     METHODS,
@@ -78,6 +88,7 @@ __all__ = [
     "CONSISTENCY_LIMIT",
     "FRAGILE_THRESHOLD",
     "METHODS",
+    "NORMALIZATIONS",
     "RANDOM_INDEX",
     "ROBUST_THRESHOLD",
     "SAATY_SCALE",
@@ -96,18 +107,25 @@ __all__ = [
     "agreement",
     "ahp_weights",
     "available",
+    "available_normalizations",
     "compare_methods",
     "comparison_matrix",
     "consistency_ratio",
     "get_method",
+    "get_normalization",
     "has_method",
+    "max_normalization",
     "method_names",
+    "minmax_normalization",
     "orient",
     "priorities",
     "rank",
     "register",
+    "register_normalization",
     "reversal_check",
     "score",
     "sensitivity",
+    "sum_normalization",
     "unregister",
+    "vector_normalization",
 ]

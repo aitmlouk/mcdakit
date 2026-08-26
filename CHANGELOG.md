@@ -29,6 +29,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   upside down), a NaN on a zero-variance criterion, criterion direction
   handled twice, a `reversal_free` claim that does not hold. Every built-in
   passes it and CI enforces that.
+- **Pluggable normalisation.** `rank(..., normalization="minmax")` swaps the
+  scheme a method uses; `vector`, `minmax`, `max` and `sum` ship, and
+  `@register_normalization` or a bare callable adds more. Each method declares
+  the scheme it is defined with, so defaults reproduce the textbook method.
+  This is a modelling axis, not a detail: on the same data the choice changes
+  the winner *and* whether the ranking survives removing a loser. Methods
+  whose guarantee depends on their own scaling — SPOTIS — declare
+  `normalization = None` and refuse the argument rather than silently
+  discarding it.
 - `py.typed`, so downstream type checkers see the annotations.
 - `CITATION.cff`, issue templates for bug reports and method proposals, and a
   pull-request checklist.

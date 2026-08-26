@@ -71,6 +71,13 @@
    :members: simple_scoring, weighted_scoring, saw
 ```
 
+## Normalisation
+
+```{eval-rst}
+.. automodule:: mcdakit.normalization
+   :members: normalize, register_normalization, get_normalization, available_normalizations, vector_normalization, minmax_normalization, max_normalization, sum_normalization
+```
+
 ## Orientation
 
 ```{eval-rst}

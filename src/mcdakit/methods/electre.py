@@ -11,7 +11,9 @@ import numpy as np
 from .base import Method, ScoringContext
 
 
-def electre(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
+def electre(
+    data: np.ndarray, weights: np.ndarray, normalization: str = "vector"
+) -> np.ndarray:
     """Net outranking flow — how many options ``i`` outranks, minus how many
     outrank ``i``. Higher is better; scores are whole numbers.
 
@@ -31,11 +33,9 @@ def electre(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
         return np.zeros(n_alt)
     w = weights / w_sum
 
-    col_norms = np.sqrt(np.sum(data**2, axis=0))
-    col_norms = np.where(col_norms == 0, 1.0, col_norms)
-    normalized = data / col_norms
+    from ..normalization import normalize as _normalize
 
-    v = normalized * w
+    v = _normalize(data, normalization) * w
 
     concordance = np.zeros((n_alt, n_alt))
     discordance = np.zeros((n_alt, n_alt))
@@ -77,5 +77,7 @@ class Electre(Method):
     summary = "ELECTRE I outranking; net concordance/discordance flows."
     citation = "Roy (1968)"
 
+    normalization = "vector"
+
     def score(self, ctx: ScoringContext) -> np.ndarray:
-        return electre(ctx.data, ctx.weights)
+        return electre(ctx.data, ctx.weights, ctx.normalization)
