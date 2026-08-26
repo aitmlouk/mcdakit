@@ -23,6 +23,23 @@ python benchmarks/reversal.py    # SPOTIS must measure 0.0%
 
 All of these must pass. `ruff format .` fixes formatting in place.
 
+While developing you will usually want a subset. The whole suite takes about
+four seconds, so reach for these mainly to read the output, not for speed:
+
+```bash
+pytest tests/test_normalization.py          # one file
+pytest tests/test_normalization.py::TestDefinitions   # one class
+pytest -k reversal                          # anything matching a keyword
+pytest -x -q                                # stop at the first failure
+pytest --lf                                 # only what failed last time
+```
+
+If `pytest` reports `ModuleNotFoundError: No module named 'mcdakit'`, the
+virtualenv is not active — activate it, or call it explicitly with
+`.venv/bin/python -m pytest`. The `src/` layout means the package is only
+importable once installed, which is deliberate: it stops a stale working-tree
+copy shadowing the one under test.
+
 Coverage is enforced at **100%, line and branch**. A line nothing exercises is
 a line nobody has checked. Where code is genuinely unreachable — a guard
 against the library's own plumbing breaking, a fallback a validated type makes
