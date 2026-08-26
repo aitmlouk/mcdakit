@@ -8,7 +8,7 @@ is wrong in one specific way, asserting the suite notices.
 import numpy as np
 import pytest
 
-from mcdakit import Method, Wants
+from mcdakit import McdaError, Method, Wants
 from mcdakit.methods import BUILTIN_METHODS
 from mcdakit.testing import (
     CHECKS,
@@ -302,3 +302,181 @@ class _CliFailure(Method):
 
     def score(self, ctx):
         return -(ctx.data @ ctx.normalized_weights)
+
+
+class TestFailureMessagesAreExercised:
+    """The suite's own error text.
+
+    Untested error messages are how a check ships saying the wrong thing — and
+    these are the messages a contributor reads when their method is broken, so
+    they are the ones that most need to be right.
+    """
+
+    def test_a_nameless_method_is_reported(self):
+        class Nameless(Method):
+            summary = "x"
+            citation = "y"
+
+            def score(self, ctx):
+                return ctx.data @ ctx.normalized_weights
+
+        report = conformance_report(Nameless())
+        assert "`name` is empty" in report["declares a name"]
+
+    def test_a_wrong_score_count_is_reported(self):
+        class TooFew(Method):
+            name = "test_too_few"
+            summary = "x"
+            citation = "y"
+
+            def score(self, ctx):
+                return np.ones(2)
+
+        report = conformance_report(TooFew())
+        assert "for 3 options" in report["scores every option"]
+
+    def test_a_non_finite_score_names_the_input_that_caused_it(self):
+        class Nan(Method):
+            name = "test_always_nan"
+            summary = "x"
+            citation = "y"
+
+            def score(self, ctx):
+                return np.full(ctx.n_options, np.nan)
+
+        report = conformance_report(Nan())
+        assert "non-finite score on" in report["scores stay finite"]
+
+    def test_failing_on_a_single_option_is_reported(self):
+        class NeedsTwo(Method):
+            name = "test_needs_two"
+            summary = "x"
+            citation = "y"
+
+            def score(self, ctx):
+                if ctx.n_options < 2:
+                    raise ValueError("I need at least two")
+                return ctx.data @ ctx.normalized_weights
+
+        report = conformance_report(NeedsTwo())
+        assert report["handles a single option"]
+
+    def test_the_data_form_check_passes_for_both_declarations(self):
+        """It reports nothing when the plumbing is sound, which is the only
+        state reachable from outside.
+
+        The mismatch messages themselves are a guard against `rank()` handing
+        a method the matrix it did not ask for. Reaching them would mean
+        breaking orientation first, so they stay uncovered by design rather
+        than by neglect — see the pragma in mcdakit/testing.py.
+        """
+        from mcdakit.testing import _check_raw_methods_see_raw_data
+
+        class Raw(Method):
+            name = "test_form_raw"
+            summary = "x"
+            citation = "y"
+            wants = Wants.RAW
+
+            def score(self, ctx):
+                return ctx.data @ ctx.normalized_weights
+
+        class Oriented(Method):
+            name = "test_form_oriented"
+            summary = "x"
+            citation = "y"
+
+            def score(self, ctx):
+                return ctx.data @ ctx.normalized_weights
+
+        assert _check_raw_methods_see_raw_data(Raw()) is None
+        assert _check_raw_methods_see_raw_data(Oriented()) is None
+
+    def test_the_registry_is_restored_when_a_name_collides(self):
+        """The suite registers under the method's own name where it can. If
+        that name is taken, the original must come back afterwards."""
+        from mcdakit.methods.registry import get
+
+        class Shadow(Method):
+            name = "topsis"
+            summary = "x"
+            citation = "y"
+
+            def score(self, ctx):
+                return ctx.data @ ctx.normalized_weights
+
+        original = get("topsis")
+        conformance_report(Shadow())
+        assert get("topsis") is original
+
+
+class TestChecksCalledDirectly:
+    """Some messages are only returned when a check is driven on its own.
+
+    Through `conformance_report` an earlier failing check often raises first,
+    so these lines are reached but the message itself never is. Driving each
+    check directly exercises the text a contributor actually reads.
+
+    Two messages — the score-count and single-option ones — are deliberately
+    absent: `Result` validates shape and finiteness before a check can look,
+    so those returns are redundant belt-and-braces rather than live paths.
+    """
+
+    def _method(self, name, body, **attrs):
+        namespace = {
+            "name": name,
+            "summary": "x",
+            "citation": "y",
+            "score": body,
+            **attrs,
+        }
+        return type("Probe", (Method,), namespace)()
+
+    def test_a_non_finite_score_message_names_the_case(self):
+        from mcdakit.testing import _check_scores_are_finite
+
+        method = self._method(
+            "test_direct_nan",
+            lambda self, ctx: np.full(ctx.n_options, np.inf),
+        )
+        message = _check_scores_are_finite(method) or ""
+        assert "non-finite score on" in message
+        assert "criterion every option scores identically" in message
+
+    def test_a_method_that_never_scores_is_tolerated_by_the_form_check(self):
+        """If `score` was never reached there is nothing to judge, so the
+        check reports nothing rather than guessing."""
+        from mcdakit.testing import _check_raw_methods_see_raw_data
+
+        class Refuses(Method):
+            name = "test_direct_refuses"
+            summary = "x"
+            citation = "y"
+
+            def validate(self, decision):
+                raise McdaError("not for me")
+
+            def score(self, ctx):  # pragma: no cover - never reached
+                return np.zeros(ctx.n_options)
+
+        with pytest.raises(McdaError):
+            _check_raw_methods_see_raw_data(Refuses())
+
+    def test_an_instance_level_score_is_restored(self):
+        """The form check swaps `score` for a spy. A method carrying its own
+        instance attribute must get it back, not lose it to `del`."""
+        from mcdakit.testing import _check_raw_methods_see_raw_data
+
+        class Plain(Method):
+            name = "test_direct_restore"
+            summary = "x"
+            citation = "y"
+
+            def score(self, ctx):
+                return ctx.data @ ctx.normalized_weights
+
+        method = Plain()
+        own = lambda ctx: np.zeros(ctx.n_options)  # noqa: E731
+        method.score = own
+        _check_raw_methods_see_raw_data(method)
+        assert method.score is own, "an instance-level score must survive"

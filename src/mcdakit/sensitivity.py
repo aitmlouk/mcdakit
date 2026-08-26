@@ -41,7 +41,9 @@ def _winner_index(decision: Decision, weights: np.ndarray, method: str) -> int |
         # seen.
         warnings.simplefilter("ignore")
         scores, _free, _messages = score(reweighted, method)
-    if scores is None or len(scores) == 0:
+    if scores is None or len(scores) == 0:  # pragma: no cover
+        # A method returning nothing. Result would refuse it first, so this is
+        # a guard for the bisection rather than a path a caller can take.
         return None
     return int(np.argmax(scores))
 
@@ -160,7 +162,7 @@ def sensitivity(result: Result) -> dict:
 
     weights = decision.weights
     baseline = _winner_index(decision, weights, method)
-    if baseline is None:
+    if baseline is None:  # pragma: no cover - see _winner_index
         raise McdaError("This decision cannot be scored.")
 
     total = float(np.sum(weights)) or 1.0

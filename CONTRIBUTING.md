@@ -12,7 +12,8 @@ pip install -e ".[dev,compare,docs]"
 ## The checks CI runs
 
 ```bash
-pytest -q                        # 269 tests, includes doctests
+pytest -q                        # 397 tests, includes doctests
+pytest -q --cov=mcdakit          # must stay at 100% (line and branch)
 ruff check .                     # lint
 ruff format --check .            # formatting
 mypy                             # types
@@ -21,6 +22,13 @@ python benchmarks/reversal.py    # SPOTIS must measure 0.0%
 ```
 
 All of these must pass. `ruff format .` fixes formatting in place.
+
+Coverage is enforced at **100%, line and branch**. A line nothing exercises is
+a line nobody has checked. Where code is genuinely unreachable — a guard
+against the library's own plumbing breaking, a fallback a validated type makes
+impossible — mark it `# pragma: no cover` **with a comment saying why**, and
+never by lowering the threshold. There are 14 such pragmas today; each names
+its reason.
 
 If vulture flags something that *is* used — via a test, a doc example, or a
 plugin — add it to `.vulture-allowlist.py` **with the reason**. An allowlist

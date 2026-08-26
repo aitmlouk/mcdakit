@@ -54,6 +54,22 @@ Changelog = "https://github.com/aitmlouk/mcdakit/blob/main/CHANGELOG.md"
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcdakit"]
 
+[tool.coverage.run]
+source = ["mcdakit"]
+branch = true
+
+[tool.coverage.report]
+# 100% is the floor, not an aspiration: a line nothing exercises is a line
+# nobody has checked. Genuinely unreachable defensive code carries an explicit
+# `# pragma: no cover` and a comment saying why — never a lowered threshold.
+fail_under = 100
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
 [tool.mypy]
 # Type-checking floor only; the package still runs on 3.9. Recent mypy cannot
 # target 3.9, and numpy's own stubs need 3.12 syntax to parse.

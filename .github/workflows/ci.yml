@@ -36,7 +36,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,compare]"
       - name: Test
-        run: pytest -q --cov=mcdakit --cov-report=term-missing
+        run: pytest -q --cov=mcdakit --cov-report=term-missing --cov-fail-under=100
       - name: The reversal benchmark must still measure SPOTIS at 0.0%
         run: python benchmarks/reversal.py --trials 200
       - name: Every shipped method must pass the contributor conformance suite

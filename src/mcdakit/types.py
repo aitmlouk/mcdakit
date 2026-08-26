@@ -236,9 +236,10 @@ class Result:
     scores: np.ndarray
     reversal_free: bool = False
     warnings: tuple = ()
-    # Optional only as a constructor convenience: __post_init__ always fills
-    # it in, so it is never None on a built Result. Read it through `ranks`.
-    _ranks: np.ndarray | None = field(default=None, repr=False)
+    # Always derived from `scores`, never supplied: ranking is a function of
+    # the scores, and letting a caller pass ranks that disagree with them
+    # would make a Result able to contradict itself. Read it through `ranks`.
+    _ranks: np.ndarray | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self):
         scores = np.asarray(self.scores, dtype=float)
@@ -262,13 +263,12 @@ class Result:
             )
         object.__setattr__(self, "scores", scores)
         object.__setattr__(self, "warnings", tuple(self.warnings))
-        if self._ranks is None:
-            object.__setattr__(self, "_ranks", _competition_ranks(scores))
+        object.__setattr__(self, "_ranks", _competition_ranks(scores))
 
     @property
     def ranks(self) -> np.ndarray:
         """Competition rank per option, in the original option order."""
-        assert self._ranks is not None  # set by __post_init__
+        assert self._ranks is not None  # always set by __post_init__
         return self._ranks
 
     @property
@@ -320,8 +320,21 @@ def _as_matrix(matrix, n_criteria: int) -> np.ndarray:
         rows = matrix
     else:
         rows = list(matrix)
-        lengths = {len(row) for row in rows} if rows else set()
-        if len(lengths) > 1:
+        scalars = [row for row in rows if not hasattr(row, "__len__")]
+        if scalars and len(scalars) == len(rows):
+            # A flat list of numbers: the caller almost certainly meant one
+            # option, or one criterion, and wrote the nesting they had in
+            # mind rather than the one the matrix needs. Saying so beats
+            # numpy's "object of type float has no len()".
+            raise McdaError(
+                f"The decision matrix must be two-dimensional (options x "
+                f"criteria), but got a flat sequence of {len(rows)} numbers. "
+                f"Wrap each option's scores in their own list: [[1, 2], "
+                f"[3, 4]] for two options on two criteria, or [[1, 2]] for a "
+                f"single option."
+            )
+        lengths = {len(row) for row in rows if hasattr(row, "__len__")}
+        if scalars or len(lengths) > 1:
             raise McdaError(
                 f"The decision matrix is ragged: rows have lengths "
                 f"{sorted(lengths)}. Every option must be scored on every "

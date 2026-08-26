@@ -73,7 +73,7 @@ def _scores(method: Method, decision: Decision) -> np.ndarray:
         method.name = original_name
         if previous is None:
             _METHODS.pop(key, None)
-        else:
+        else:  # pragma: no cover - only when a name collides mid-check
             _METHODS[key] = previous
 
 
@@ -109,7 +109,9 @@ def _check_cites_its_source(method: Method):
 def _check_scores_every_option(method: Method):
     decision = _problem([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
     scores = _scores(method, decision)
-    if scores.shape != (3,):
+    # Belt and braces: Result refuses a wrong-shaped score vector before this
+    # can look, so a method is rejected earlier with a clearer message.
+    if scores.shape != (3,):  # pragma: no cover
         return f"returned {scores.shape} scores for 3 options."
     return None
 
@@ -132,7 +134,10 @@ def _check_scores_are_finite(method: Method):
             if "non-finite" in str(exc):
                 return f"produced a non-finite score on {description}."
             raise
-        if not np.all(np.isfinite(scores)):
+        # Result raises on a non-finite score, so the except branch above is
+        # the live path; this catches a method that somehow returns one
+        # without going through Result.
+        if not np.all(np.isfinite(scores)):  # pragma: no cover
             return f"produced a non-finite score on {description}."
     return None
 
@@ -200,7 +205,9 @@ def _check_option_order_does_not_matter(method: Method):
 def _check_single_option(method: Method):
     """A one-option problem is degenerate but legal."""
     scores = _scores(method, _problem([[5.0, 5.0]]))
-    if scores.shape != (1,) or not np.all(np.isfinite(scores)):
+    # As above: Result validates shape and finiteness first, so reaching this
+    # would mean Result stopped doing so.
+    if scores.shape != (1,) or not np.all(np.isfinite(scores)):  # pragma: no cover
         return "failed on a single-option problem."
     return None
 
@@ -229,6 +236,9 @@ def _check_raw_methods_see_raw_data(method: Method):
     """A RAW method must not be handed an oriented matrix, and vice versa."""
     seen = {}
     original = method.score
+    # A method may carry `score` on the instance rather than the class. `del`
+    # would destroy it instead of restoring it, so remember which it was.
+    had_own = "score" in vars(method)
 
     def spy(ctx):
         seen["data"] = np.asarray(ctx.data).copy()
@@ -239,18 +249,22 @@ def _check_raw_methods_see_raw_data(method: Method):
         decision = _problem([[100.0], [900.0]], directions=["cost"])
         _scores(method, decision)
     finally:
-        try:
-            del method.score  # type: ignore[attr-defined]
-        except AttributeError:
+        if had_own:
             method.score = original  # type: ignore[method-assign]
+        else:
+            vars(method).pop("score", None)
 
     got = seen.get("data")
-    if got is None:
+    if got is None:  # pragma: no cover - score() raised, so there is nothing to judge
         return None
     raw = np.allclose(got.ravel(), [100.0, 900.0])
-    if method.wants is Wants.RAW and not raw:
+    # These two only fire if rank() hands a method the matrix it did not ask
+    # for — a break in the library's own plumbing, not in the method. Not
+    # reachable from a test without first breaking orientation, which is the
+    # thing being guarded.
+    if method.wants is Wants.RAW and not raw:  # pragma: no cover
         return "declares Wants.RAW but did not receive the raw matrix."
-    if method.wants is Wants.ORIENTED and raw:
+    if method.wants is Wants.ORIENTED and raw:  # pragma: no cover
         return "declares Wants.ORIENTED but received an un-oriented matrix."
     return None
 

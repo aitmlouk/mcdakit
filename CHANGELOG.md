@@ -57,6 +57,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The conformance suite's data-form check destroyed a method's own `score`
+  attribute instead of restoring it, when the method carried one on the
+  instance rather than the class.
+- A flat list of numbers as a decision matrix — `[1, 2]` where `[[1, 2]]` was
+  meant — raised numpy's "object of type float has no len()". It now explains
+  the nesting the matrix needs.
+- `Result` no longer accepts precomputed ranks. Nothing supplied them, and a
+  caller passing ranks that disagreed with the scores could have made a
+  Result contradict itself.
+
 - **A method reading `ctx.directions` under the default `Wants.ORIENTED` now
   raises instead of silently inverting cost criteria.** The matrix arrives
   with cost columns already mirrored, so handling direction again flips them
