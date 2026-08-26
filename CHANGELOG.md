@@ -21,7 +21,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   package's methods are found automatically, with no import by the user. A
   plugin that fails to load warns (`PluginLoadError`) rather than taking the
   registry down with it.
+- **`mcdakit.testing` — a conformance suite for method authors.**
+  `check_method(MyMethod())`, or
+  `python -m mcdakit.testing my_package:MyMethod`, checks thirteen properties
+  every sound method holds. It catches the failures that are otherwise
+  silent: a smallest-is-best measure returned without negating (every ranking
+  upside down), a NaN on a zero-variance criterion, criterion direction
+  handled twice, a `reversal_free` claim that does not hold. Every built-in
+  passes it and CI enforces that.
 - `py.typed`, so downstream type checkers see the annotations.
+- `CITATION.cff`, issue templates for bug reports and method proposals, and a
+  pull-request checklist.
 - Sphinx documentation, a CI matrix over Python 3.9-3.13 on Linux, macOS and
   Windows, `CONTRIBUTING.md`, and an architecture decision record.
 
@@ -35,6 +45,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   before 0.1.0, caught generically this time.
 - `Result.ranks` is a property; it was always populated, but was typed as
   optional.
+
+### Fixed
+
+- **A method reading `ctx.directions` under the default `Wants.ORIENTED` now
+  raises instead of silently inverting cost criteria.** The matrix arrives
+  with cost columns already mirrored, so handling direction again flips them
+  back and the cheapest option ranks last — a confident, exactly reversed
+  ranking with no error. Found by writing a method (COPRAS) against the
+  extension API and getting a wrong answer that looked plausible.
+- A method returning `NaN` or infinity is now refused, naming the options
+  affected. NaN sorts unpredictably, so a ranking containing one is not a
+  ranking.
 
 ## [0.1.0] - 2026-08-26
 

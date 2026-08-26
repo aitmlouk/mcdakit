@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+title: "mcdakit: multi-criteria decision analysis with stable rankings"
+message: "If you use this software in research, please cite it."
+type: software
+authors:
+  - family-names: Ait-Mlouk
+    given-names: Addi
+    email: aitmlouk@gmail.com
+repository-code: "https://github.com/aitmlouk/mcdakit"
+license: Apache-2.0
+version: 0.1.0
+date-released: "2026-08-26"
+keywords:
+  - multi-criteria decision analysis
+  - rank reversal
+  - sensitivity analysis
+  - SPOTIS
+  - TOPSIS
+references:
+  - type: article
+    title: "The SPOTIS Rank Reversal Free Method for Multi-Criteria Decision-Making Support"
+    authors:
+      - family-names: Dezert
+        given-names: Jean
+      - family-names: Tchamova
+        given-names: Albena
+      - family-names: Han
+        given-names: Deqiang
+      - family-names: Tacnet
+        given-names: Jean-Marc
+    year: 2020
+    conference:
+      name: "IEEE 23rd International Conference on Information Fusion (FUSION)"

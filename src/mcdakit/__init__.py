@@ -68,6 +68,9 @@ from .sensitivity import (
 )
 from .types import Criterion, Decision, McdaError, Result
 
+# `testing` is imported lazily by users (`from mcdakit.testing import ...`);
+# it is not pulled in here so `import mcdakit` stays free of test scaffolding.
+
 __version__ = "0.1.0"
 
 __all__ = [

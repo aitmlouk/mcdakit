@@ -82,16 +82,21 @@ class ScoringContext:
     decision: Decision
     options: dict = field(default_factory=dict)
 
-    # Set when `options` is read, so the caller can tell whether keyword
-    # arguments actually reached the method or were silently dropped. A
-    # mutable box on a frozen dataclass, because observing a read must not
-    # require the context to be rebuilt.
-    _read: list = field(default_factory=list, repr=False, compare=False)
+    # Names of the attributes a method has actually read. A mutable box on a
+    # frozen dataclass, because observing a read must not require the context
+    # to be rebuilt. Used to catch two mistakes that are otherwise silent:
+    # options nobody consumed, and direction handled twice.
+    _read: set = field(default_factory=set, repr=False, compare=False)
 
     @property
     def consumed(self) -> bool:
         """Whether anything has read :attr:`options` yet."""
-        return bool(self._read)
+        return "options" in self._read
+
+    @property
+    def read_directions(self) -> bool:
+        """Whether the method inspected criterion directions itself."""
+        return "directions" in self._read
 
     @property
     def opts(self) -> dict:
@@ -101,16 +106,31 @@ class ScoringContext:
         through this rather than :attr:`options` directly, so that an option
         nobody accepts is reported instead of vanishing.
         """
-        self._read.append(True)
+        self._read.add("options")
         return self.options
 
     @property
     def criteria(self) -> tuple:
+        """The :class:`~mcdakit.types.Criterion` objects, in column order.
+
+        These carry ``direction``, so a method reading them to decide
+        cost-versus-benefit has the same double-handling risk as
+        :attr:`directions`. Reading a criterion's ``bounds``,
+        ``preference_shape`` or name is safe and common; only its
+        ``direction`` is the trap.
+        """
         return self.decision.criteria
 
     @property
     def directions(self) -> list:
-        """``"benefit"`` or ``"cost"`` per criterion, in column order."""
+        """``"benefit"`` or ``"cost"`` per criterion, in column order.
+
+        Reading this while :attr:`Method.wants` is :attr:`Wants.ORIENTED` is
+        almost always a bug: the cost columns have *already* been flipped for
+        you, so handling direction again inverts them back. :func:`mcdakit.rank`
+        raises if it sees that combination — see :class:`Wants`.
+        """
+        self._read.add("directions")
         return self.decision.directions
 
     @property

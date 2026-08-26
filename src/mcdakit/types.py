@@ -247,6 +247,19 @@ class Result:
                 f"Method {self.method!r} returned {scores.shape} scores for "
                 f"{self.decision.n_options} options."
             )
+        if not np.all(np.isfinite(scores)):
+            bad = [
+                self.decision.labels[i]
+                for i in range(len(scores))
+                if not np.isfinite(scores[i])
+            ]
+            raise McdaError(
+                f"Method {self.method!r} returned a non-finite score for "
+                f"{', '.join(bad)}. NaN sorts unpredictably, so a ranking "
+                f"containing one is not a ranking. Common causes: dividing by "
+                f"a zero-variance criterion, or log/sqrt of a non-positive "
+                f"value."
+            )
         object.__setattr__(self, "scores", scores)
         object.__setattr__(self, "warnings", tuple(self.warnings))
         if self._ranks is None:

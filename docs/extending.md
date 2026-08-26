@@ -88,6 +88,19 @@ SPOTIS is the built-in that does this: it compares each option against a fixed
 ideal point derived from `bounds`, so it must see real prices and real
 delivery times, not mirrored ones.
 
+:::{danger}
+**If you read `ctx.directions`, you must set `Wants.RAW`.**
+
+Under the default `Wants.ORIENTED` the cost columns have *already* been
+flipped for you. Consulting directions and flipping again inverts them back,
+and the cheapest option comes last — a confident, exactly reversed ranking
+with no error.
+
+`rank()` raises if it sees that combination, so the mistake fails loudly
+rather than silently. This is the single easiest way to write a method that
+looks right and is wrong.
+:::
+
 :::{warning}
 Orientation depends on which options are present — the midpoint moves when the
 option set moves. That dependence is one mechanism behind rank reversal. A
@@ -217,30 +230,80 @@ deliberately:
 register(MyBetterTopsis(), replace=True)
 ```
 
-## Testing your method
+## Checking your method
 
-Two properties are worth asserting whatever your method does:
+Writing a ranking method is easy; writing a *correct* one is not, and the
+failure modes are quiet. Run the conformance suite before you publish:
 
-```python
-import numpy as np
-from mcdakit import rank, reversal_check
-
-def test_a_dominant_option_wins():
-    """The one result no method may get wrong."""
-    matrix = [[1, 1], [9, 9]]
-    assert rank(matrix, criteria, method="mine").winner == "Best"
-
-def test_scores_are_finite():
-    result = rank(matrix, criteria, method="mine")
-    assert np.all(np.isfinite(result.scores))
+```bash
+python -m mcdakit.testing my_package.methods:MyMethod
 ```
 
-If your method claims `reversal_free`, prove it:
+```
+ok    declares a name
+ok    describes itself
+ok    cites its source
+ok    returns a supported type
+ok    scores every option
+FAIL  higher is better    the option that is best on every criterion did not
+                          score highest. If your measure is smallest-is-best
+                          (a distance, a regret), negate it before returning.
+...
+```
+
+Or from your own test suite:
 
 ```python
+from mcdakit.testing import check_method
+
+def test_my_method_conforms():
+    check_method(MyMethod())
+```
+
+It checks thirteen properties every sound method holds, including the three
+that are otherwise invisible:
+
+| Property | The failure it catches |
+|---|---|
+| higher is better | A distance or regret returned without negating — every ranking upside down |
+| handles cost criteria | Direction ignored, or handled twice |
+| scores stay finite | NaN from a zero-variance criterion, a zero column, or identical options |
+| weight scale does not matter | Raw weights used where normalised ones were needed |
+| option order does not matter | A result that depends on how the rows were listed |
+| reversal-freedom holds if claimed | `reversal_free = True` that does not survive removing a loser |
+
+Every method shipped in `mcdakit` passes this suite, and CI enforces it.
+
+Pass `strict=False` (or `--no-strict`) while prototyping to tolerate a missing
+`summary` or `citation`.
+
+**Passing is a floor, not a ceiling.** It says your method is well-behaved, not
+that its arithmetic matches the paper. For that you still need a worked
+example with values verified outside your own code — a published table, a hand
+computation, or a cross-check against another library:
+
+```python
+def test_matches_the_published_example():
+    """Table 3 of Author (2019); distances 0.1996, 0.3622, 0.3169."""
+    result = rank(PAPER_MATRIX, PAPER_CRITERIA, method="mine")
+    assert result.score_of("A1") == pytest.approx(-0.19956052, abs=1e-8)
+```
+
+If your method claims `reversal_free`, prove it on your own data too:
+
+```python
+from mcdakit import reversal_check
+
 def test_it_is_reversal_free():
     assert reversal_check(matrix, criteria, method="mine")["reversed"] is False
 ```
 
 `benchmarks/reversal.py` measures the same property across many random
 problems, and takes any registered method.
+
+## Contributing a method upstream
+
+A plugin needs nothing from us. If a method belongs in `mcdakit` itself —
+because it is widely used, or needs something the contract cannot express —
+open an issue using the "Propose a method" template, and see
+[`CONTRIBUTING.md`](https://github.com/aitmlouk/mcdakit/blob/main/CONTRIBUTING.md).

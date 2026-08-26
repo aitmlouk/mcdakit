@@ -49,13 +49,40 @@ test it.
 ## Adding a method
 
 Please read the extending guide (`docs/extending.md`) first — you may not need to change this
-package at all. A method distributed as a plugin is a first-class citizen.
+package at all. A method distributed as a plugin is a first-class citizen:
+reachable by name, included in `compare_methods()`, analysable by
+`sensitivity()`.
+
+**Whether it lives here or in your own package, check it first:**
+
+```bash
+python -m mcdakit.testing my_package.methods:MyMethod
+```
+
+That runs the conformance suite — thirteen properties every sound method
+holds. It catches the failures that are otherwise silent: a score convention
+that ranks everything backwards, a NaN on a criterion every option scores
+alike, criterion direction handled twice. Call it from your own tests too:
+
+```python
+from mcdakit.testing import check_method
+
+def test_my_method_conforms():
+    check_method(MyMethod())
+```
+
+Every method shipped here passes it, and CI enforces that — holding
+contributors to a standard the library itself failed would be indefensible.
+
+Passing is a floor, not a ceiling: it says your method is well-behaved, not
+that its arithmetic matches the paper.
 
 If it does belong here, it needs:
 
 - a `Method` subclass with `name`, `summary` and `citation`;
 - the algorithm as a plain function over numpy arrays, so it can be tested and
   imported on its own;
+- `python -m mcdakit.testing` passing;
 - tests against values verified **outside this codebase** — a published paper,
   a hand computation, or a cross-check against another library;
 - an entry in the README's method table.

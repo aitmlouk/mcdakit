@@ -42,6 +42,13 @@
    :members: register, unregister, get, has, names, available, DuplicateMethodError, PluginLoadError
 ```
 
+## Conformance testing
+
+```{eval-rst}
+.. automodule:: mcdakit.testing
+   :members: check_method, conformance_report, ConformanceError
+```
+
 ## Methods
 
 ```{eval-rst}

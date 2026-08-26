@@ -92,6 +92,22 @@ def score(decision: Decision, method: str = "weighted_scoring", **kwargs):
     )
     result = _as_method_result(implementation.score(ctx))
 
+    if implementation.wants is not Wants.RAW and ctx.read_directions:
+        # The matrix arrived with cost columns already mirrored, and the method
+        # then consulted directions itself — so it will flip them a second
+        # time and rank costs exactly backwards. Silent, and catastrophic: the
+        # cheapest option comes last. A method that handles direction itself
+        # must ask for the raw matrix.
+        raise McdaError(
+            f"Method {method!r} read ctx.directions but declares "
+            f"wants = Wants.ORIENTED, so it received a matrix whose cost "
+            f"columns were already flipped. Handling direction again inverts "
+            f"them. Set `wants = Wants.RAW` on "
+            f"{type(implementation).__name__} to receive the figures as "
+            f"measured, or stop reading ctx.directions and let the library "
+            f"orient them."
+        )
+
     if kwargs and not ctx.consumed:
         # The method never looked at ctx.options, so these went nowhere.
         # Silently ignoring them is how `rank(..., v=0.5)` on a method with no

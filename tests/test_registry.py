@@ -262,6 +262,9 @@ class TestScoringContext:
 
         class Peek(Method):
             name = "test_ctx"
+            # Reads ctx.directions, so it must ask for the raw matrix — the
+            # guard in rank() enforces exactly this.
+            wants = Wants.RAW
 
             def score(self, ctx):
                 seen.update(
