@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..normalization import normalize_weights
 from .base import Method, ScoringContext
 
 
@@ -28,10 +29,9 @@ def electre(
     """
     n_alt = data.shape[0]
 
-    w_sum = np.sum(weights)
-    if w_sum == 0:
+    w = normalize_weights(weights)
+    if w is None:
         return np.zeros(n_alt)
-    w = weights / w_sum
 
     from ..normalization import normalize as _normalize
 

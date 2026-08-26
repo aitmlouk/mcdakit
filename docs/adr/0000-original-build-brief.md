@@ -1,3 +1,24 @@
+# 0. The original build brief
+
+**Status:** superseded, kept for the record. Written 2026-08-26, *before* any
+code existed.
+
+:::{warning}
+**This is a historical document, not current guidance.** Several of its
+figures were estimates that the finished implementation disproved — the
+reversal table below says SAW reverses 16.8% of the time, where the package's
+own benchmark measures 1.8%, and the worked supplier example never reproduced
+as written. Those corrections, and why they happened, are in the README and
+`docs/stability.md`, which are generated from code that runs.
+
+Kept because the *reasoning* — why SPOTIS, why numpy-only, why validation is
+the slow part — is still the reasoning behind the package, and because a plan
+that turned out partly wrong is more useful to a future contributor than one
+quietly rewritten to look prescient.
+:::
+
+---
+
 # mcdakit — build plan
 
 A standalone Python package for multi-criteria decision analysis. **No Odoo.**

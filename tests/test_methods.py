@@ -149,6 +149,25 @@ class TestPreferenceDegree:
             0.3935, abs=1e-4
         )
 
+    def test_an_unset_threshold_falls_back_to_total_preference(self):
+        """A shape needs thresholds to have a meaning. Left at zero — which
+        Criterion permits, since the default shape ignores them — the only
+        sensible reading is the usual criterion: any difference is total.
+        Returning 0.0 instead would silently mute the criterion."""
+        assert preference_degree(5, "vshape", p=0) == 1.0
+        assert preference_degree(5, "gaussian", s=0) == 1.0
+
+    def test_a_preference_threshold_at_or_below_q_collapses_to_a_step(self):
+        """With p <= q there is no band to interpolate across, so the shape
+        degenerates to a step at q rather than dividing by zero."""
+        assert preference_degree(15, "level", q=10, p=10) == 1.0
+        assert preference_degree(15, "linear", q=10, p=10) == 1.0
+        assert preference_degree(5, "level", q=10, p=10) == 0.0
+        assert preference_degree(5, "linear", q=10, p=10) == 0.0
+
+    def test_an_unknown_shape_falls_back_to_the_usual_criterion(self):
+        assert preference_degree(0.5, "not_a_shape") == 1.0
+
     @pytest.mark.parametrize(
         "shape", ["usual", "ushape", "vshape", "level", "linear", "gaussian"]
     )

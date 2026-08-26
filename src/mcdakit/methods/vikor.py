@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..normalization import normalize_weights
 from .base import Method, ScoringContext
 
 
@@ -26,10 +27,9 @@ def vikor(data: np.ndarray, weights: np.ndarray, v: float = 0.5) -> np.ndarray:
     """
     n_alt = data.shape[0]
 
-    w_sum = np.sum(weights)
-    if w_sum == 0:
+    w = normalize_weights(weights)
+    if w is None:
         return np.zeros(n_alt)
-    w = weights / w_sum
 
     f_best = np.max(data, axis=0)
     f_worst = np.min(data, axis=0)

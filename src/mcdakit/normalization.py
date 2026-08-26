@@ -48,6 +48,7 @@ __all__ = [
     "get_normalization",
     "max_normalization",
     "minmax_normalization",
+    "normalize_weights",
     "register_normalization",
     "sum_normalization",
     "vector_normalization",
@@ -219,3 +220,21 @@ register_normalization(
     sum_normalization,
     summary="x / sum(x); each value as a share of the column total.",
 )
+
+
+def normalize_weights(weights: np.ndarray) -> np.ndarray | None:
+    """Scale weights to sum to one, or return ``None`` if the total is zero.
+
+    Every method needs this, and each carried its own copy of the guard.
+    ``None`` rather than a fallback keeps the decision with the caller: the
+    methods return a flat zero vector, which says "nothing here can be ranked"
+    rather than inventing preferences nobody expressed.
+
+    Going through :func:`mcdakit.rank` the zero case cannot arise — a
+    :class:`~mcdakit.types.Decision` refuses all-zero weights. The guard is for
+    the algorithm functions, which are public and callable on hand-built
+    arrays.
+    """
+    weights = np.asarray(weights, dtype=float)
+    total = float(np.sum(weights))
+    return None if total == 0 else weights / total

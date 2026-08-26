@@ -20,6 +20,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
+from ..normalization import normalize_weights
 from .base import Method, MethodResult, ScoringContext, Wants
 
 
@@ -84,10 +85,9 @@ def spotis(
     data = np.asarray(data, dtype=float)
     n_alt, n_crit = data.shape
 
-    w_sum = np.sum(weights)
-    if w_sum == 0:
+    w = normalize_weights(weights)
+    if w is None:
         return np.zeros(n_alt), True, ()
-    w = np.asarray(weights, dtype=float) / w_sum
 
     if bounds is None:
         bounds = [None] * n_crit

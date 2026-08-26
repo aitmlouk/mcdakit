@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..normalization import normalize_weights
 from .base import Method, ScoringContext
 
 
@@ -33,10 +34,9 @@ def weighted_scoring(
     A criterion every option scores identically carries no information; it is
     given a flat 1.0 rather than dividing by zero.
     """
-    w_sum = np.sum(weights)
-    if w_sum == 0:
+    normalized_weights = normalize_weights(weights)
+    if normalized_weights is None:
         return np.zeros(data.shape[0])
-    normalized_weights = weights / w_sum
 
     from ..normalization import normalize as _normalize
 
@@ -53,10 +53,9 @@ def saw(
     the observed range, which keeps ratios between values intact but means the
     worst option is not pinned to zero.
     """
-    w_sum = np.sum(weights)
-    if w_sum == 0:
+    w = normalize_weights(weights)
+    if w is None:
         return np.zeros(data.shape[0])
-    w = weights / w_sum
 
     from ..normalization import normalize as _normalize
 

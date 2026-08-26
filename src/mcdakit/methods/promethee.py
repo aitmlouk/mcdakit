@@ -13,8 +13,6 @@ import numpy as np
 
 from .base import Method, ScoringContext
 
-SHAPES = ("usual", "ushape", "vshape", "level", "linear", "gaussian")
-
 
 def preference_degree(
     difference: float,

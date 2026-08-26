@@ -16,10 +16,15 @@ pytest -q                        # 269 tests, includes doctests
 ruff check .                     # lint
 ruff format --check .            # formatting
 mypy                             # types
+vulture src/ .vulture-allowlist.py --min-confidence 60   # dead code
 python benchmarks/reversal.py    # SPOTIS must measure 0.0%
 ```
 
-All five must pass. `ruff format .` fixes formatting in place.
+All of these must pass. `ruff format .` fixes formatting in place.
+
+If vulture flags something that *is* used — via a test, a doc example, or a
+plugin — add it to `.vulture-allowlist.py` **with the reason**. An allowlist
+of unexplained names stops being a check.
 
 ## House rules
 
