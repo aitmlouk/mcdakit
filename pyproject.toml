@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcdakit"
+version = "0.1.0"
+description = "Multi-criteria decision analysis with rank-reversal-free ranking and weight sensitivity analysis"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Addi Ait-Mlouk", email = "aitmlouk@gmail.com" }]
+keywords = [
+    "mcda", "decision-analysis", "topsis", "promethee", "spotis",
+    "vikor", "electre", "ahp", "rank-reversal", "sensitivity-analysis",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = ["numpy>=1.21"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.5", "hypothesis>=6"]
+compare = ["pymcdm>=1.1"]
+
+[project.urls]
+Homepage = "https://github.com/aitmlouk/mcdakit"
+Issues = "https://github.com/aitmlouk/mcdakit/issues"
+Changelog = "https://github.com/aitmlouk/mcdakit/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcdakit"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src"]
+# Docstring examples are the first thing a reader tries; run them.
+addopts = "--doctest-modules"
+# benchmarks/ is importable so the reversal benchmark can be pinned as a test
+# rather than only ever run by hand.
+pythonpath = ["."]
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Shared fixture data on a test class is read-only by convention; demanding
+# ClassVar annotations on it adds noise without catching anything.
+"tests/*" = ["RUF012"]
