@@ -12,7 +12,7 @@ pip install -e ".[dev,compare,docs]"
 ## The checks CI runs
 
 ```bash
-pytest -q                        # 397 tests, includes doctests
+pytest -q                        # the suite, including doctests
 pytest -q --cov=mcdakit          # must stay at 100% (line and branch)
 ruff check .                     # lint
 ruff format --check .            # formatting

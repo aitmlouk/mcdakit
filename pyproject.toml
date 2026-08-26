@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcdakit"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Multi-criteria decision analysis with rank-reversal-free ranking and weight sensitivity analysis"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -50,6 +50,11 @@ docs = ["sphinx>=7", "furo>=2024.1", "myst-parser>=2"]
 Homepage = "https://github.com/aitmlouk/mcdakit"
 Issues = "https://github.com/aitmlouk/mcdakit/issues"
 Changelog = "https://github.com/aitmlouk/mcdakit/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+# Single source of truth. Three hardcoded copies would drift; CITATION.cff is
+# checked against this one by tests/test_packaging.py.
+path = "src/mcdakit/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcdakit"]

@@ -9,7 +9,7 @@ authors:
 repository-code: "https://github.com/aitmlouk/mcdakit"
 license: Apache-2.0
 version: 0.1.0
-date-released: "2026-08-26"
+date-released: "2026-08-27"
 keywords:
   - multi-criteria decision analysis
   - rank reversal

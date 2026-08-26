@@ -6,17 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
+## [0.1.0] - 2026-08-27
 
-- **Extensible methods.** A ranking method is now a `Method` object that
+First release.
+
+### The package
+
+- **Extensible methods.** A ranking method is a `Method` object that
   declares what it needs, registered by name. A method defined outside the
   package is a first-class citizen: reachable from `rank()`, included in
   `compare_methods()`, analysable by `sensitivity()`. See `docs/extending.md`.
 - `Method`, `ScoringContext`, `MethodResult` and `Wants` — the extension
-  contract. `Wants.RAW` lets a method ask for the un-oriented matrix, which is
-  what SPOTIS needed a hardcoded special case for previously.
+  contract. `Wants.RAW` lets a method ask for the un-oriented matrix, which
+  is how SPOTIS avoids needing a special case.
 - `register()`, `unregister()`, `available()`, `get_method()`, `has_method()`
-  and `method_names()` — the registry.
+  and `method_names()` — the registry. `METHODS` is a live view of it, so a
+  method registered at any point is immediately visible, while still behaving
+  like the tuple it reads as (`in`, iteration, indexing, `len`, `==`).
 - Entry-point discovery under the `mcdakit.methods` group: an installed
   package's methods are found automatically, with no import by the user. A
   plugin that fails to load warns (`PluginLoadError`) rather than taking the
@@ -44,44 +50,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Sphinx documentation, a CI matrix over Python 3.9-3.13 on Linux, macOS and
   Windows, `CONTRIBUTING.md`, and an architecture decision record.
 
-### Changed
+### Refuses to guess
 
-- `METHODS` is a live view of the registry rather than a frozen tuple, so a
-  method registered at any point is immediately visible. It still supports
-  everything a tuple did (`in`, iteration, indexing, `len`, `==`).
-- Passing a keyword argument no method reads now raises `McdaError` instead of
-  being silently ignored — the same class of bug as the `v=` defect fixed
-  before 0.1.0, caught generically this time.
-- `Result.ranks` is a property; it was always populated, but was typed as
-  optional.
+Nothing here degrades quietly. Each of these was a real defect during
+development, caught and turned into an error rather than left to surprise
+someone downstream.
 
-### Fixed
-
-- The conformance suite's data-form check destroyed a method's own `score`
-  attribute instead of restoring it, when the method carried one on the
-  instance rather than the class.
-- A flat list of numbers as a decision matrix — `[1, 2]` where `[[1, 2]]` was
-  meant — raised numpy's "object of type float has no len()". It now explains
-  the nesting the matrix needs.
-- `Result` no longer accepts precomputed ranks. Nothing supplied them, and a
-  caller passing ranks that disagreed with the scores could have made a
-  Result contradict itself.
-
-- **A method reading `ctx.directions` under the default `Wants.ORIENTED` now
-  raises instead of silently inverting cost criteria.** The matrix arrives
-  with cost columns already mirrored, so handling direction again flips them
-  back and the cheapest option ranks last — a confident, exactly reversed
-  ranking with no error. Found by writing a method (COPRAS) against the
-  extension API and getting a wrong answer that looked plausible.
-- A method returning `NaN` or infinity is now refused, naming the options
+- A method reading `ctx.directions` while declaring `Wants.ORIENTED` raises.
+  The matrix arrives with cost columns already mirrored, so handling direction
+  again flips them back and the cheapest option ranks last — a confident,
+  exactly reversed ranking with no error. Found by writing a method (COPRAS)
+  against the extension API and getting a plausible-looking wrong answer.
+- A method returning `NaN` or infinity is refused, naming the options
   affected. NaN sorts unpredictably, so a ranking containing one is not a
   ranking.
+- A keyword argument no method reads raises rather than being ignored, so
+  `rank(..., v=0.5)` on a method without a `v` cannot look like it worked.
+- SPOTIS without bounds warns and reports `reversal_free = False` rather than
+  returning a number that looks guaranteed.
+- A flat list where a matrix was meant — `[1, 2]` rather than `[[1, 2]]` —
+  explains the nesting instead of raising numpy's "object of type float has
+  no len()".
+- A ragged matrix, unknown direction, all-zero weights or reversed bounds are
+  each refused at construction, where the mistake was made.
 
-## [0.1.0] - 2026-08-26
-
-First release.
-
-### Added
+### Core, from the initial port
 
 - `Criterion`, `Decision` and `Result` core types with validation at
   construction — ragged matrices, unknown directions, and degenerate weights
