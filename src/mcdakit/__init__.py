@@ -36,7 +36,22 @@ from .ahp import (
     consistency_ratio,
     priorities,
 )
-from .methods import BoundsWarning
+from .methods import (
+    BUILTIN_METHODS,
+    BoundsWarning,
+    DuplicateMethodError,
+    Method,
+    MethodResult,
+    PluginLoadError,
+    ScoringContext,
+    Wants,
+    available,
+    register,
+    unregister,
+)
+from .methods import get as get_method
+from .methods import has as has_method
+from .methods import names as method_names
 from .orientation import orient
 from .ranking import (
     METHODS,
@@ -56,6 +71,7 @@ from .types import Criterion, Decision, McdaError, Result
 __version__ = "0.1.0"
 
 __all__ = [
+    "BUILTIN_METHODS",
     "CONSISTENCY_LIMIT",
     "FRAGILE_THRESHOLD",
     "METHODS",
@@ -65,18 +81,30 @@ __all__ = [
     "BoundsWarning",
     "Criterion",
     "Decision",
+    "DuplicateMethodError",
     "McdaError",
+    "Method",
+    "MethodResult",
+    "PluginLoadError",
     "Result",
+    "ScoringContext",
+    "Wants",
     "__version__",
     "agreement",
     "ahp_weights",
+    "available",
     "compare_methods",
     "comparison_matrix",
     "consistency_ratio",
+    "get_method",
+    "has_method",
+    "method_names",
     "orient",
     "priorities",
     "rank",
+    "register",
     "reversal_check",
     "score",
     "sensitivity",
+    "unregister",
 ]

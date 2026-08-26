@@ -43,13 +43,13 @@ class TestTolerance:
                 continue
             sign = 1 if row["direction"] == "up" else -1
             over = weights.astype(float).copy()
-            over[index] = max(
-                0.0, over[index] + sign * row["tolerance"] * total * 1.02)
+            over[index] = max(0.0, over[index] + sign * row["tolerance"] * total * 1.02)
             assert _winner_index(supplier, over, "weighted_scoring") != baseline
 
             under = weights.astype(float).copy()
             under[index] = max(
-                0.0, under[index] + sign * row["tolerance"] * total * 0.90)
+                0.0, under[index] + sign * row["tolerance"] * total * 0.90
+            )
             assert _winner_index(supplier, under, "weighted_scoring") == baseline
 
     def test_the_named_successor_is_the_one_that_takes_over(self, supplier):
@@ -63,7 +63,8 @@ class TestTolerance:
             sign = 1 if row["direction"] == "up" else -1
             nudged = supplier.weights.astype(float).copy()
             nudged[index] = max(
-                0.0, nudged[index] + sign * row["tolerance"] * total * 1.01)
+                0.0, nudged[index] + sign * row["tolerance"] * total * 1.01
+            )
             winner = _winner_index(supplier, nudged, "weighted_scoring")
             assert supplier.labels[winner] == row["flips_to"]
 
@@ -73,8 +74,7 @@ class TestBands:
         """An option best on every criterion wins whatever the weights are, so
         there is no tolerance to report — not a tolerance of zero."""
         matrix = [[1, 1, 1, 1], [9, 9, 9, 9], [5, 5, 5, 5]]
-        report = sensitivity(
-            rank(matrix, supplier_criteria, labels=["A", "B", "C"]))
+        report = sensitivity(rank(matrix, supplier_criteria, labels=["A", "B", "C"]))
         assert report["level"] == "immovable"
         assert report["overall"] is None
         assert all(r["tolerance"] is None for r in report["rows"])
@@ -106,7 +106,8 @@ class TestBands:
         assert report["overall"] == pytest.approx(min(tolerances))
         weakest = min(
             (r for r in report["rows"] if r["tolerance"] is not None),
-            key=lambda r: r["tolerance"])
+            key=lambda r: r["tolerance"],
+        )
         assert report["weakest"] == weakest["name"]
 
 
@@ -118,8 +119,7 @@ class TestAcrossMethods:
         analytic shortcut would have been wrong."""
         report = sensitivity(rank(procurement, method=method))
         assert len(report["rows"]) == procurement.n_criteria
-        assert report["level"] in {
-            "fragile", "moderate", "robust", "immovable"}
+        assert report["level"] in {"fragile", "moderate", "robust", "immovable"}
 
     def test_simple_scoring_ignores_weights_so_nothing_flips(self, supplier):
         """It never reads the weights, so no weight change can move it. The

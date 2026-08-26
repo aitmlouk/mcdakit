@@ -4,39 +4,48 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from .methods import (
-    electre,
-    promethee,
-    saw,
-    simple_scoring,
-    spotis,
-    topsis,
-    vikor,
-    weighted_scoring,
-)
+from .methods import get as get_method
+from .methods import names as method_names
+from .methods.base import ScoringContext, Wants, _as_method_result
 from .orientation import orient
 from .types import Criterion, Decision, McdaError, Result
 
-#: Every method name accepted by :func:`rank`, in a sensible reading order.
-METHODS = (
-    "simple_scoring",
-    "weighted_scoring",
-    "saw",
-    "topsis",
-    "vikor",
-    "electre",
-    "promethee",
-    "spotis",
-)
 
-_ORIENTED = {
-    "simple_scoring": simple_scoring,
-    "weighted_scoring": weighted_scoring,
-    "saw": saw,
-    "topsis": topsis,
-    "vikor": vikor,
-    "electre": electre,
-}
+class _MethodNames(Sequence):
+    """A live view of the registered method names.
+
+    ``METHODS`` used to be a frozen tuple. Now that methods can be registered
+    at any time — by a plugin, or by the user mid-session — a snapshot taken at
+    import would go stale. This reads the registry on every access, so
+    ``"my_method" in METHODS`` is true the moment it is registered, while
+    still supporting everything a tuple supported.
+    """
+
+    def __getitem__(self, index):
+        return method_names()[index]
+
+    def __len__(self) -> int:
+        return len(method_names())
+
+    def __iter__(self):
+        return iter(method_names())
+
+    def __contains__(self, value) -> bool:
+        return value in method_names()
+
+    def __eq__(self, other) -> bool:
+        return tuple(self) == tuple(other)
+
+    def __hash__(self) -> int:
+        return hash(tuple(self))
+
+    def __repr__(self) -> str:
+        return repr(method_names())
+
+
+#: Every registered method name — built-in and plugin alike. A live view of
+#: the registry, not a snapshot.
+METHODS = _MethodNames()
 
 
 def as_decision(
@@ -48,8 +57,7 @@ def as_decision(
     if isinstance(matrix, Decision):
         if criteria is not None or labels is not None:
             raise McdaError(
-                "Pass either a Decision or (matrix, criteria, labels), not "
-                "both."
+                "Pass either a Decision or (matrix, criteria, labels), not both."
             )
         return matrix
     if criteria is None:
@@ -63,45 +71,37 @@ def score(decision: Decision, method: str = "weighted_scoring", **kwargs):
     Returns ``(scores, reversal_free, messages)``. Mostly useful internally —
     the sensitivity analysis re-scores the same problem hundreds of times and
     has no use for the surrounding object.
+
+    Dispatch goes through the registry, so a method registered by a third-party
+    package is reached the same way a built-in is. Nothing here branches on a
+    method's name; what a method needs, it declares.
     """
-    if method not in METHODS:
+    implementation = get_method(method)
+    implementation.validate(decision)
+
+    if implementation.wants is Wants.RAW:
+        data = decision.matrix
+    else:
+        data = orient(decision.matrix, decision.directions)
+
+    ctx = ScoringContext(
+        data=data,
+        weights=decision.weights,
+        decision=decision,
+        options=kwargs,
+    )
+    result = _as_method_result(implementation.score(ctx))
+
+    if kwargs and not ctx.consumed:
+        # The method never looked at ctx.options, so these went nowhere.
+        # Silently ignoring them is how `rank(..., v=0.5)` on a method with no
+        # `v` came to be a no-op that looked like it worked.
         raise McdaError(
-            f"Unknown method {method!r}. Available: {', '.join(METHODS)}."
+            f"Method {method!r} takes no keyword arguments, but got "
+            f"{', '.join(sorted(kwargs))}. Check the spelling, or see "
+            f"{type(implementation).__name__}.score for what it accepts."
         )
-
-    weights = decision.weights
-
-    if method == "spotis":
-        return spotis(
-            decision.matrix,
-            weights,
-            decision.directions,
-            [c.bounds for c in decision.criteria],
-            **kwargs,
-        )
-
-    data = orient(decision.matrix, decision.directions)
-
-    if method == "promethee":
-        shapes = _shapes(decision)
-        return promethee(data, weights, shapes, **kwargs), False, ()
-
-    return _ORIENTED[method](data, weights, **kwargs), False, ()
-
-
-def _shapes(decision: Decision):
-    """``(shape, q, p, s)`` per criterion, or ``None`` if all are the default.
-
-    Returning ``None`` when nothing was configured keeps PROMETHEE on its
-    simple path, so a problem that never touched preference functions scores
-    bit-identically to one built before they existed.
-    """
-    shapes = [
-        (c.preference_shape, c.q, c.p, c.s) for c in decision.criteria
-    ]
-    if all(shape == "usual" for shape, _q, _p, _s in shapes):
-        return None
-    return shapes
+    return result.scores, result.reversal_free, result.warnings
 
 
 def rank(
@@ -122,7 +122,8 @@ def rank(
         :class:`~mcdakit.types.Decision` may be passed instead, in which case
         ``criteria`` and ``labels`` must be omitted.
     method:
-        One of :data:`METHODS`. The default, ``weighted_scoring``, is the
+        Any registered method name; see :func:`mcdakit.methods.names`.
+        The default, ``weighted_scoring``, is the
         least surprising; ``spotis`` is the one whose ranking cannot reverse.
 
     Returns
@@ -170,12 +171,9 @@ def compare_methods(
     See :func:`agreement` for a one-line summary of the same output.
     """
     decision = as_decision(matrix, criteria, labels)
-    chosen = tuple(methods) if methods else METHODS
+    chosen = tuple(methods) if methods else method_names()
     for name in chosen:
-        if name not in METHODS:
-            raise McdaError(
-                f"Unknown method {name!r}. Available: {', '.join(METHODS)}."
-            )
+        get_method(name)  # raises McdaError, listing what is available
     return {name: rank(decision, method=name, **kwargs) for name in chosen}
 
 
@@ -186,7 +184,7 @@ def agreement(results: dict) -> dict:
     ``consensus`` is the option most methods picked; ``unanimous`` says
     whether every method agreed on the whole order, not merely the winner.
     """
-    winners = {}
+    winners: dict = {}
     for result in results.values():
         winners[result.winner] = winners.get(result.winner, 0) + 1
 

@@ -13,9 +13,9 @@ import pytest
 from mcdakit import Criterion, Decision
 
 SUPPLIER_MATRIX = [
-    [9, 5, 7, 6],   # Supplier A
-    [6, 9, 8, 9],   # Supplier B
-    [7, 7, 6, 5],   # Supplier C
+    [9, 5, 7, 6],  # Supplier A
+    [6, 9, 8, 9],  # Supplier B
+    [7, 7, 6, 5],  # Supplier C
 ]
 SUPPLIER_LABELS = ["Supplier A", "Supplier B", "Supplier C"]
 
@@ -50,11 +50,11 @@ def procurement():
         Criterion("Support", 0.15, "benefit", bounds=(0, 10)),
     ]
     matrix = [
-        [2.75, 7.0, 14, 8.0],   # Kestrel Supply
-        [2.90, 8.5, 16, 8.0],   # Nordpack
-        [3.40, 9.0, 11, 7.0],   # Meridian
-        [2.20, 3.0, 32, 2.0],   # Bytharm  (rejected: last under every method,
-                                #  and the cheapest, so it defines the price scale)
+        [2.75, 7.0, 14, 8.0],  # Kestrel Supply
+        [2.90, 8.5, 16, 8.0],  # Nordpack
+        [3.40, 9.0, 11, 7.0],  # Meridian
+        [2.20, 3.0, 32, 2.0],  # Bytharm  (rejected: last under every method,
+        #  and the cheapest, so it defines the price scale)
     ]
     labels = ["Kestrel Supply", "Nordpack", "Meridian", "Bytharm"]
     return Decision(matrix, criteria, labels)

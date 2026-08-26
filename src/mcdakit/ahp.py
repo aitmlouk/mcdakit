@@ -35,9 +35,21 @@ SAATY_SCALE = {
 #: index of a randomly filled n x n reciprocal matrix. The consistency ratio is
 #: CI / RI, which is what makes it comparable across problem sizes.
 RANDOM_INDEX = {
-    1: 0.00, 2: 0.00, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24,
-    7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49, 11: 1.51, 12: 1.48,
-    13: 1.56, 14: 1.57, 15: 1.59,
+    1: 0.00,
+    2: 0.00,
+    3: 0.58,
+    4: 0.90,
+    5: 1.12,
+    6: 1.24,
+    7: 1.32,
+    8: 1.41,
+    9: 1.45,
+    10: 1.49,
+    11: 1.51,
+    12: 1.48,
+    13: 1.56,
+    14: 1.57,
+    15: 1.59,
 }
 
 #: Saaty's rule of thumb: above this, at least one judgement contradicts the
@@ -56,9 +68,7 @@ def comparison_matrix(n: int, judgements: dict) -> np.ndarray:
     matrix = np.ones((n, n), dtype=float)
     for (i, j), value in judgements.items():
         if not (0 <= i < n and 0 <= j < n):
-            raise McdaError(
-                f"Judgement ({i}, {j}) is out of range for {n} criteria."
-            )
+            raise McdaError(f"Judgement ({i}, {j}) is out of range for {n} criteria.")
         if i == j:
             raise McdaError("A criterion cannot be compared with itself.")
         value = float(value)
@@ -91,7 +101,7 @@ def priorities(matrix: np.ndarray) -> np.ndarray:
     return geometric / total
 
 
-def consistency_ratio(matrix: np.ndarray, weights: np.ndarray = None) -> float:
+def consistency_ratio(matrix: np.ndarray, weights: np.ndarray | None = None) -> float:
     """Saaty's consistency ratio, ``CI / RI``.
 
     Zero for a perfectly consistent set of judgements — one where saying price

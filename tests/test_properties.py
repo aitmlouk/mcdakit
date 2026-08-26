@@ -20,10 +20,12 @@ SETTINGS = settings(
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
 
-values = st.floats(min_value=0.1, max_value=100.0, allow_nan=False,
-                   allow_infinity=False)
-weights = st.floats(min_value=0.01, max_value=10.0, allow_nan=False,
-                    allow_infinity=False)
+values = st.floats(
+    min_value=0.1, max_value=100.0, allow_nan=False, allow_infinity=False
+)
+weights = st.floats(
+    min_value=0.01, max_value=10.0, allow_nan=False, allow_infinity=False
+)
 
 
 @st.composite
@@ -33,7 +35,8 @@ def problems(draw, min_options=2, max_options=5, max_criteria=4):
     matrix = draw(
         st.lists(
             st.lists(values, min_size=n_criteria, max_size=n_criteria),
-            min_size=n_options, max_size=n_options,
+            min_size=n_options,
+            max_size=n_options,
         )
     )
     criteria = [
@@ -54,17 +57,14 @@ class TestScaleInvariance:
             for c in problem.criteria
         ]
         scaled = Decision(problem.matrix, doubled, problem.labels)
-        assert rank(scaled, method=method).order == rank(
-            problem, method=method).order
+        assert rank(scaled, method=method).order == rank(problem, method=method).order
 
 
 class TestPermutationInvariance:
     @given(problem=problems())
     @SETTINGS
     @pytest.mark.parametrize("method", METHODS)
-    def test_reordering_the_options_does_not_change_who_wins(
-        self, problem, method
-    ):
+    def test_reordering_the_options_does_not_change_who_wins(self, problem, method):
         """The row order of the matrix is presentation, not information.
 
         Ties are exempt: which of two equal options is listed first is
@@ -85,9 +85,7 @@ class TestPermutationInvariance:
     @given(problem=problems())
     @SETTINGS
     @pytest.mark.parametrize("method", METHODS)
-    def test_reordering_the_criteria_does_not_change_who_wins(
-        self, problem, method
-    ):
+    def test_reordering_the_criteria_does_not_change_who_wins(self, problem, method):
         """Columns carry their own weight and direction, so their order is
         presentation too."""
         original = rank(problem, method=method)
@@ -123,15 +121,12 @@ class TestOutputShape:
     @given(problem=problems())
     @SETTINGS
     @pytest.mark.parametrize("method", METHODS)
-    def test_every_option_is_scored_finitely_and_ranked_once(
-        self, problem, method
-    ):
+    def test_every_option_is_scored_finitely_and_ranked_once(self, problem, method):
         result = rank(problem, method=method)
         assert result.scores.shape == (problem.n_options,)
         assert np.all(np.isfinite(result.scores))
         assert len(result.ranking) == problem.n_options
-        assert sorted(label for label, _ in result.ranking) == sorted(
-            problem.labels)
+        assert sorted(label for label, _ in result.ranking) == sorted(problem.labels)
         assert min(result.ranks) == 1
 
 
@@ -148,4 +143,5 @@ class TestSpotisProperty:
             reduced = rank(problem.without(index), method="spotis")
             for kept in reduced.decision.labels:
                 assert reduced.score_of(kept) == pytest.approx(
-                    full.score_of(kept), abs=1e-9)
+                    full.score_of(kept), abs=1e-9
+                )

@@ -20,6 +20,8 @@ from collections.abc import Sequence
 
 import numpy as np
 
+from .base import Method, MethodResult, ScoringContext, Wants
+
 
 class BoundsWarning(UserWarning):
     """A SPOTIS ranking fell back to observed data instead of fixed bounds.
@@ -113,7 +115,7 @@ def spotis(
     distances = np.abs(data - ideal) / span
     total = distances @ w
 
-    messages = ()
+    messages: tuple = ()
     reversal_free = not fell_back
     if fell_back:
         names = ", ".join(f"criterion {j + 1}" for j in fell_back)
@@ -128,3 +130,35 @@ def spotis(
             warnings.warn(message, BoundsWarning, stacklevel=2)
 
     return (-total).astype(float), reversal_free, messages
+
+
+class Spotis(Method):
+    """SPOTIS as a registered method.
+
+    The one built-in that declares :attr:`Wants.RAW`: it must see the figures
+    as measured, because it resolves criterion direction itself against the
+    fixed bounds rather than against the other options.
+
+    :attr:`reversal_free` is ``True`` as a statement about the method, but each
+    call reports its own verdict — a problem with missing bounds comes back
+    ``reversal_free=False`` with a warning, because the guarantee is a property
+    of the inputs as much as of the algorithm.
+    """
+
+    name = "spotis"
+    summary = "Rank-reversal-free distance to a fixed ideal point."
+    citation = "Dezert, Tchamova, Han and Tacnet (2020)"
+    wants = Wants.RAW
+    reversal_free = True
+
+    def score(self, ctx: ScoringContext) -> MethodResult:
+        scores, reversal_free, messages = spotis(
+            ctx.data,
+            ctx.weights,
+            ctx.directions,
+            ctx.bounds,
+            **ctx.opts,
+        )
+        return MethodResult(
+            scores=scores, reversal_free=reversal_free, warnings=messages
+        )

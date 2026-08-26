@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from .base import Method, ScoringContext
+
 
 def electre(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
     """Net outranking flow — how many options ``i`` outranks, minus how many
@@ -66,3 +68,14 @@ def electre(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
 
     net_flows = np.sum(outranking, axis=1) - np.sum(outranking, axis=0)
     return net_flows.astype(float)
+
+
+class Electre(Method):
+    """ELECTRE I as a registered method."""
+
+    name = "electre"
+    summary = "ELECTRE I outranking; net concordance/discordance flows."
+    citation = "Roy (1968)"
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return electre(ctx.data, ctx.weights)

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 
@@ -71,8 +72,7 @@ class Criterion:
             )
         if weight < 0:
             raise McdaError(
-                f"Criterion {self.name!r}: weight must not be negative, "
-                f"got {weight}."
+                f"Criterion {self.name!r}: weight must not be negative, got {weight}."
             )
         object.__setattr__(self, "weight", weight)
 
@@ -213,9 +213,7 @@ class Decision:
         survivors, and see whether their order held.
         """
         if not 0 <= index < self.n_options:
-            raise McdaError(
-                f"No option at index {index}; there are {self.n_options}."
-            )
+            raise McdaError(f"No option at index {index}; there are {self.n_options}.")
         keep = [i for i in range(self.n_options) if i != index]
         return Decision(
             self.matrix[keep, :],
@@ -238,7 +236,9 @@ class Result:
     scores: np.ndarray
     reversal_free: bool = False
     warnings: tuple = ()
-    ranks: np.ndarray = field(default=None)
+    # Optional only as a constructor convenience: __post_init__ always fills
+    # it in, so it is never None on a built Result. Read it through `ranks`.
+    _ranks: np.ndarray | None = field(default=None, repr=False)
 
     def __post_init__(self):
         scores = np.asarray(self.scores, dtype=float)
@@ -249,15 +249,19 @@ class Result:
             )
         object.__setattr__(self, "scores", scores)
         object.__setattr__(self, "warnings", tuple(self.warnings))
-        if self.ranks is None:
-            object.__setattr__(self, "ranks", _competition_ranks(scores))
+        if self._ranks is None:
+            object.__setattr__(self, "_ranks", _competition_ranks(scores))
+
+    @property
+    def ranks(self) -> np.ndarray:
+        """Competition rank per option, in the original option order."""
+        assert self._ranks is not None  # set by __post_init__
+        return self._ranks
 
     @property
     def ranking(self) -> list:
         """``[(label, score), ...]`` best first."""
-        order = sorted(
-            range(len(self.scores)), key=lambda i: -self.scores[i]
-        )
+        order = sorted(range(len(self.scores)), key=lambda i: -self.scores[i])
         return [(self.decision.labels[i], float(self.scores[i])) for i in order]
 
     @property
@@ -298,6 +302,7 @@ class Result:
 
 def _as_matrix(matrix, n_criteria: int) -> np.ndarray:
     """Validate and convert a decision matrix to a float array."""
+    rows: Any
     if isinstance(matrix, np.ndarray):
         rows = matrix
     else:

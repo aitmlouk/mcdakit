@@ -287,17 +287,17 @@ The whole package should be usable without reading docs:
 from mcdakit import Criterion, rank, sensitivity
 
 criteria = [
-    Criterion("Price",     weight=0.40, direction="cost",    bounds=(2.00, 4.00)),
-    Criterion("Quality",   weight=0.25, direction="benefit", bounds=(0, 10)),
-    Criterion("Lead time", weight=0.20, direction="cost",    bounds=(5, 35)),
-    Criterion("Support",   weight=0.15, direction="benefit", bounds=(0, 10)),
+    Criterion("Price", weight=0.40, direction="cost", bounds=(2.00, 4.00)),
+    Criterion("Quality", weight=0.25, direction="benefit", bounds=(0, 10)),
+    Criterion("Lead time", weight=0.20, direction="cost", bounds=(5, 35)),
+    Criterion("Support", weight=0.15, direction="benefit", bounds=(0, 10)),
 ]
 
 result = rank(matrix, criteria, method="spotis", labels=[...])
-result.winner            # "Kestrel Supply"
-result.ranking           # [("Kestrel Supply", 0.72), ...]
+result.winner  # "Kestrel Supply"
+result.ranking  # [("Kestrel Supply", 0.72), ...]
 
-sensitivity(result).level    # "fragile" — a 4% weight change flips it
+sensitivity(result).level  # "fragile" — a 4% weight change flips it
 ```
 
 Method names are strings, matching the Odoo engine's vocabulary:

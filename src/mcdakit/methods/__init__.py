@@ -1,28 +1,110 @@
-"""The ranking methods.
+"""The ranking methods, and the contract for adding more.
 
-Each is a plain function over numpy arrays returning a score per option where
-higher is better. They can be used directly, but the usual entry point is
-:func:`mcdakit.rank`, which handles orientation, weights and bounds.
+Each built-in exists in two forms: a plain function over numpy arrays, which
+is what the algorithm actually is, and a :class:`~mcdakit.methods.base.Method`
+class that registers it under a name. Use the functions directly when you want
+the maths and nothing else; go through :func:`mcdakit.rank` for orientation,
+weights, bounds and warning handling.
+
+Adding your own is the same contract the built-ins use — see
+:mod:`mcdakit.methods.base`.
 """
 
-from .electre import electre
-from .promethee import flows, preference_degree, preference_matrix, promethee
-from .scoring import saw, simple_scoring, weighted_scoring
-from .spotis import BoundsWarning, spotis
-from .topsis import topsis
-from .vikor import vikor
+from .base import Method, MethodResult, ScoringContext, Wants
+from .electre import Electre, electre
+from .promethee import (
+    Promethee,
+    flows,
+    preference_degree,
+    preference_matrix,
+    promethee,
+    shapes_from,
+)
+from .registry import (
+    ENTRY_POINT_GROUP,
+    DuplicateMethodError,
+    PluginLoadError,
+    available,
+    get,
+    has,
+    names,
+    register,
+    unregister,
+)
+from .scoring import (
+    Saw,
+    SimpleScoring,
+    WeightedScoring,
+    saw,
+    simple_scoring,
+    weighted_scoring,
+)
+from .spotis import BoundsWarning, Spotis, spotis
+from .topsis import Topsis, topsis
+from .vikor import Vikor, vikor
+
+#: The built-ins, in a sensible reading order: simplest first, the
+#: reversal-free one last.
+BUILTIN_METHODS = (
+    SimpleScoring,
+    WeightedScoring,
+    Saw,
+    Topsis,
+    Vikor,
+    Electre,
+    Promethee,
+    Spotis,
+)
+
+
+def register_builtins(*, replace: bool = False) -> None:
+    """Register every built-in method.
+
+    Called once on import. Exposed because
+    :func:`~mcdakit.methods.registry._reset_for_testing` clears the registry,
+    and tests need a way to put the built-ins back.
+    """
+    for method in BUILTIN_METHODS:
+        register(method(), replace=replace)
+
+
+register_builtins()
 
 __all__ = [
+    "BUILTIN_METHODS",
+    "ENTRY_POINT_GROUP",
     "BoundsWarning",
+    "DuplicateMethodError",
+    "Electre",
+    "Method",
+    "MethodResult",
+    "PluginLoadError",
+    "Promethee",
+    "Saw",
+    "ScoringContext",
+    "SimpleScoring",
+    "Spotis",
+    "Topsis",
+    "Vikor",
+    "Wants",
+    "WeightedScoring",
+    "available",
     "electre",
     "flows",
+    "get",
+    "has",
+    "names",
     "preference_degree",
     "preference_matrix",
     "promethee",
+    "register",
+    "register_builtins",
     "saw",
+    "shapes_from",
     "simple_scoring",
     "spotis",
     "topsis",
+    "unregister",
     "vikor",
     "weighted_scoring",
 ]

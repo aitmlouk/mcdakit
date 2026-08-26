@@ -18,9 +18,10 @@ from mcdakit import (
 
 class TestRankSignature:
     def test_it_accepts_a_decision(self, supplier):
-        assert rank(supplier).winner == rank(
-            supplier.matrix, supplier.criteria,
-            labels=supplier.labels).winner
+        assert (
+            rank(supplier).winner
+            == rank(supplier.matrix, supplier.criteria, labels=supplier.labels).winner
+        )
 
     def test_passing_both_a_decision_and_criteria_is_refused(self, supplier):
         """Silently ignoring one of them would hide a real mistake."""
@@ -40,8 +41,16 @@ class TestRankSignature:
         )
 
     def test_an_argument_the_method_does_not_take_is_an_error(self, supplier):
-        with pytest.raises(TypeError, match="unexpected keyword"):
+        """`topsis` has no `v`. Accepting it silently is how the original
+        kwargs bug hid: the call looked like it worked and did nothing."""
+        with pytest.raises(McdaError, match="takes no keyword arguments"):
             rank(supplier, method="topsis", v=0.5)
+
+    def test_an_argument_a_method_does_take_is_rejected_when_misspelled(self, supplier):
+        """`vikor` reads options, so a wrong name reaches the function and
+        surfaces as its TypeError — still an error, not a silent no-op."""
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            rank(supplier, method="vikor", vee=0.5)
 
 
 class TestCompareMethods:
@@ -75,8 +84,11 @@ class TestAgreement:
     def test_unanimity_is_reported_when_it_holds(self, supplier_criteria):
         matrix = [[9, 9, 9, 9], [5, 5, 5, 5], [1, 1, 1, 1]]
         results = compare_methods(
-            matrix, supplier_criteria, labels=["Best", "Mid", "Worst"],
-            methods=["weighted_scoring", "saw", "topsis"])
+            matrix,
+            supplier_criteria,
+            labels=["Best", "Mid", "Worst"],
+            methods=["weighted_scoring", "saw", "topsis"],
+        )
         summary = agreement(results)
         assert summary["unanimous"] is True
         assert summary["consensus"] == "Best"
@@ -99,7 +111,9 @@ class TestReversalCheck:
 
     def test_spotis_reports_no_cases(self, procurement):
         assert reversal_check(procurement, method="spotis") == {
-            "reversed": False, "cases": []}
+            "reversed": False,
+            "cases": [],
+        }
 
 
 class TestPackage:
@@ -126,12 +140,21 @@ class TestPackage:
         root = pathlib.Path(mcdakit.__file__).parent
         allowed = {"numpy", "mcdakit"}
         stdlib = {
-            "__future__", "dataclasses", "typing", "warnings", "argparse",
-            "sys", "abc", "math", "collections", "pathlib", "enum",
+            "__future__",
+            "dataclasses",
+            "typing",
+            "warnings",
+            "argparse",
+            "sys",
+            "abc",
+            "math",
+            "collections",
+            "pathlib",
+            "enum",
         }
         for path in root.rglob("*.py"):
             for line in path.read_text().splitlines():
-                match = re.match(r"\s*(?:from|import)\s+([\w.]+)", line)
+                match = re.match(r"(?:from|import)\s+([\w.]+)", line)
                 if not match:
                     continue
                 top = match.group(1).split(".")[0]
@@ -142,19 +165,23 @@ class TestPackage:
 
 class TestDegenerate:
     def test_one_criterion_still_ranks(self):
-        result = rank([[1.0], [5.0], [3.0]],
-                      [Criterion("Only", 1.0, bounds=(0, 10))],
-                      method="spotis", labels=["a", "b", "c"])
+        result = rank(
+            [[1.0], [5.0], [3.0]],
+            [Criterion("Only", 1.0, bounds=(0, 10))],
+            method="spotis",
+            labels=["a", "b", "c"],
+        )
         assert result.winner == "b"
 
     @pytest.mark.parametrize("method", METHODS)
-    def test_identical_options_tie_rather_than_ordering_arbitrarily(
-        self, method
-    ):
-        criteria = [Criterion("A", 1.0, bounds=(0, 10)),
-                    Criterion("B", 1.0, bounds=(0, 10))]
-        result = rank([[5.0, 5.0], [5.0, 5.0]], criteria, method=method,
-                      labels=["x", "y"])
+    def test_identical_options_tie_rather_than_ordering_arbitrarily(self, method):
+        criteria = [
+            Criterion("A", 1.0, bounds=(0, 10)),
+            Criterion("B", 1.0, bounds=(0, 10)),
+        ]
+        result = rank(
+            [[5.0, 5.0], [5.0, 5.0]], criteria, method=method, labels=["x", "y"]
+        )
         assert result.scores[0] == pytest.approx(result.scores[1])
         assert list(result.ranks) == [1, 1]
 
@@ -166,6 +193,8 @@ class TestDegenerate:
         ]
         matrix = [[9, 5, 7, 0], [6, 9, 8, 10], [7, 7, 6, 5]]
         without_support = Decision(
-            [row[:3] for row in matrix], muted[:3], ["A", "B", "C"])
+            [row[:3] for row in matrix], muted[:3], ["A", "B", "C"]
+        )
         assert rank(matrix, muted, labels=["A", "B", "C"]).scores == pytest.approx(
-            rank(without_support).scores)
+            rank(without_support).scores
+        )

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from .base import Method, ScoringContext
+
 
 def topsis(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
     """Closeness to the ideal solution, in ``[0, 1]``, higher is better.
@@ -52,3 +54,14 @@ def topsis(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
     denominator = d_pos + d_neg
     denominator = np.where(denominator == 0, 1.0, denominator)
     return (d_neg / denominator).astype(float)
+
+
+class Topsis(Method):
+    """TOPSIS as a registered method."""
+
+    name = "topsis"
+    summary = "Closeness to the ideal solution, by vector normalisation."
+    citation = "Hwang and Yoon (1981)"
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return topsis(ctx.data, ctx.weights)

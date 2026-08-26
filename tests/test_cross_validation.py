@@ -25,12 +25,14 @@ from pymcdm.normalizations import (  # noqa: E402
 # Verified empirically against its SPOTIS, not assumed from the docs.
 PYMCDM_BENEFIT, PYMCDM_COST = 1, -1
 
-MATRIX = np.array([
-    [10.5, -3.1, 1.7, 3.4],
-    [-4.7, 0.0, 3.4, 5.6],
-    [8.1, 0.3, 1.3, 2.1],
-    [3.2, 7.3, -5.3, 1.9],
-])
+MATRIX = np.array(
+    [
+        [10.5, -3.1, 1.7, 3.4],
+        [-4.7, 0.0, 3.4, 5.6],
+        [8.1, 0.3, 1.3, 2.1],
+        [3.2, 7.3, -5.3, 1.9],
+    ]
+)
 WEIGHTS = np.array([0.2, 0.3, 0.4, 0.1])
 BOUNDS = np.array([[-5.0, 12], [-6, 10], [-8, 5], [-4, 6]])
 DIRECTIONS = ["benefit", "cost", "benefit", "benefit"]
@@ -72,13 +74,11 @@ class TestSpotis:
         matrix = rng.uniform(0, 10, size=(6, 4))
         weights = rng.dirichlet(np.ones(4))
         bounds = np.array([[0.0, 10.0]] * 4)
-        types = np.array([PYMCDM_BENEFIT, PYMCDM_COST,
-                          PYMCDM_BENEFIT, PYMCDM_COST])
+        types = np.array([PYMCDM_BENEFIT, PYMCDM_COST, PYMCDM_BENEFIT, PYMCDM_COST])
         directions = ["benefit", "cost", "benefit", "cost"]
 
         criteria = [
-            Criterion(f"C{j + 1}", float(weights[j]), directions[j],
-                      bounds=(0.0, 10.0))
+            Criterion(f"C{j + 1}", float(weights[j]), directions[j], bounds=(0.0, 10.0))
             for j in range(4)
         ]
         theirs = SPOTIS(bounds)(matrix, weights, types)
@@ -104,22 +104,27 @@ class TestTopsis:
 
     def test_we_match_pymcdm_under_the_same_normalisation(self):
         theirs = TOPSIS(normalization_function=vector_normalization)(
-            self.POSITIVE, WEIGHTS, self.ALL_BENEFIT)
-        ours = rank(self.POSITIVE, _criteria(["benefit"] * 4, bounds=False),
-                    method="topsis").scores
+            self.POSITIVE, WEIGHTS, self.ALL_BENEFIT
+        )
+        ours = rank(
+            self.POSITIVE, _criteria(["benefit"] * 4, bounds=False), method="topsis"
+        ).scores
         assert np.allclose(ours, theirs, atol=1e-12)
 
     def test_pymcdms_default_differs_and_we_know_why(self):
         """Pin the disagreement so a future change to either side is noticed
         rather than quietly absorbed."""
         default = TOPSIS()(self.POSITIVE, WEIGHTS, self.ALL_BENEFIT)
-        ours = rank(self.POSITIVE, _criteria(["benefit"] * 4, bounds=False),
-                    method="topsis").scores
+        ours = rank(
+            self.POSITIVE, _criteria(["benefit"] * 4, bounds=False), method="topsis"
+        ).scores
         assert not np.allclose(ours, default, atol=1e-6)
         minmax = TOPSIS(normalization_function=minmax_normalization)(
-            self.POSITIVE, WEIGHTS, self.ALL_BENEFIT)
+            self.POSITIVE, WEIGHTS, self.ALL_BENEFIT
+        )
         assert np.allclose(default, minmax, atol=1e-12), (
-            "pymcdm's default is min-max normalisation")
+            "pymcdm's default is min-max normalisation"
+        )
 
     def test_both_still_rank_a_dominant_option_first(self):
         """Whatever the normalisation, the one answer neither may get wrong."""
@@ -127,6 +132,7 @@ class TestTopsis:
         extended = np.vstack([self.POSITIVE, dominant])
 
         theirs = TOPSIS()(extended, WEIGHTS, np.array([PYMCDM_BENEFIT] * 4))
-        ours = rank(extended, _criteria(["benefit"] * 4, bounds=False),
-                    method="topsis").scores
+        ours = rank(
+            extended, _criteria(["benefit"] * 4, bounds=False), method="topsis"
+        ).scores
         assert int(np.argmax(theirs)) == int(np.argmax(ours)) == 4

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from .base import Method, ScoringContext
+
 
 def vikor(data: np.ndarray, weights: np.ndarray, v: float = 0.5) -> np.ndarray:
     """Compromise ranking, returned **negated** so higher is better.
@@ -49,3 +51,18 @@ def vikor(data: np.ndarray, weights: np.ndarray, v: float = 0.5) -> np.ndarray:
     Q = v * (S - S_best) / s_denom + (1 - v) * (R - R_best) / r_denom
 
     return (-Q).astype(float)
+
+
+class Vikor(Method):
+    """VIKOR as a registered method.
+
+    Accepts ``v`` through ``rank(..., v=...)``: the weight given to group
+    utility against worst-case regret.
+    """
+
+    name = "vikor"
+    summary = "Compromise ranking between group utility and worst-case regret."
+    citation = "Opricovic and Tzeng (2004)"
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return vikor(ctx.data, ctx.weights, **ctx.opts)

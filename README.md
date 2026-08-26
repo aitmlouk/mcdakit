@@ -11,25 +11,25 @@ inputs?*
 from mcdakit import Criterion, rank, sensitivity
 
 criteria = [
-    Criterion("Price",     weight=0.40, direction="cost",    bounds=(2.00, 4.00)),
-    Criterion("Quality",   weight=0.25, direction="benefit", bounds=(0, 10)),
-    Criterion("Lead time", weight=0.20, direction="cost",    bounds=(5, 35)),
-    Criterion("Support",   weight=0.15, direction="benefit", bounds=(0, 10)),
+    Criterion("Price", weight=0.40, direction="cost", bounds=(2.00, 4.00)),
+    Criterion("Quality", weight=0.25, direction="benefit", bounds=(0, 10)),
+    Criterion("Lead time", weight=0.20, direction="cost", bounds=(5, 35)),
+    Criterion("Support", weight=0.15, direction="benefit", bounds=(0, 10)),
 ]
 matrix = [
-    [2.75, 7.0, 14, 8.0],   # Kestrel Supply
-    [2.90, 8.5, 16, 8.0],   # Nordpack
-    [3.40, 9.0, 11, 7.0],   # Meridian
-    [2.20, 3.0, 32, 2.0],   # Bytharm  — cheapest, but nobody would buy it
+    [2.75, 7.0, 14, 8.0],  # Kestrel Supply
+    [2.90, 8.5, 16, 8.0],  # Nordpack
+    [3.40, 9.0, 11, 7.0],  # Meridian
+    [2.20, 3.0, 32, 2.0],  # Bytharm  — cheapest, but nobody would buy it
 ]
 labels = ["Kestrel Supply", "Nordpack", "Meridian", "Bytharm"]
 
 result = rank(matrix, criteria, method="spotis", labels=labels)
-result.winner            # 'Kestrel Supply'
+result.winner  # 'Kestrel Supply'
 
 report = sensitivity(result)
-report["level"]          # 'fragile'
-report["weakest"]        # 'Quality' — the weight with the least room to move
+report["level"]  # 'fragile'
+report["weakest"]  # 'Quality' — the weight with the least room to move
 ```
 
 `sensitivity` is the part worth reading twice. It reports, for every
@@ -114,13 +114,15 @@ looks authoritative:
 ```python
 import warnings
 from mcdakit import BoundsWarning
-warnings.simplefilter("error", BoundsWarning)   # in a pipeline that relies on it
+
+warnings.simplefilter("error", BoundsWarning)  # in a pipeline that relies on it
 ```
 
 Check any method for reversal on your own data:
 
 ```python
 from mcdakit import reversal_check
+
 reversal_check(matrix, criteria, method="topsis", labels=labels)
 # {'reversed': True, 'cases': [{'removed': 'Bytharm', ...}]}
 ```
@@ -172,12 +174,12 @@ judgements into weights and measures whether they contradict each other:
 from mcdakit import ahp_weights
 
 out = ahp_weights(
-    {(0, 1): 3, (0, 2): 9, (1, 2): 3},          # price 3x quality, 9x delivery...
+    {(0, 1): 3, (0, 2): 9, (1, 2): 3},  # price 3x quality, 9x delivery...
     names=["Price", "Quality", "Delivery"],
 )
-out["weights"]             # [0.6923, 0.2308, 0.0769]
-out["consistency_ratio"]   # 0.0 — perfectly consistent
-out["consistent"]          # True (Saaty's 0.10 rule of thumb)
+out["weights"]  # [0.6923, 0.2308, 0.0769]
+out["consistency_ratio"]  # 0.0 — perfectly consistent
+out["consistent"]  # True (Saaty's 0.10 rule of thumb)
 ```
 
 The consistency ratio is reported, never enforced. An inconsistent matrix is a
@@ -197,12 +199,66 @@ Criterion("Price", 0.5, "cost", preference_shape="linear", q=100, p=500)
 All six of Brans and Vincke's shapes are available: `usual`, `ushape`,
 `vshape`, `level`, `linear`, `gaussian`.
 
+## Adding your own method
+
+A method written outside this package is a first-class citizen: reachable by
+name, included in `compare_methods`, analysable by `sensitivity`. Nothing in
+the library branches on a method's name — what a method needs, it declares.
+
+```python
+import numpy as np
+from mcdakit import Method, ScoringContext, register, rank
+
+class Median(Method):
+    name = "median"
+    summary = "Median score across criteria."
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return np.median(ctx.data, axis=1)
+
+register(Median())
+
+rank(matrix, criteria, method="median", labels=labels).winner
+```
+
+Methods that resolve criterion direction themselves — as SPOTIS does — ask for
+the un-oriented matrix:
+
+```python
+from mcdakit import Wants
+
+class MyMethod(Method):
+    name = "mine"
+    wants = Wants.RAW      # give me the figures as measured
+```
+
+To ship one as a package, declare an entry point and it is discovered on
+install, with no import needed by the user:
+
+```toml
+[project.entry-points."mcdakit.methods"]
+my_method = "my_package.methods:MyMethod"
+```
+
+The full contract — reporting caveats, refusing problems, accepting options —
+is in [`docs/extending.md`](docs/extending.md).
+
 ## What this is not
 
 Not a replacement for [`pymcdm`](https://pypi.org/project/pymcdm/) or
 [`scikit-criteria`](https://pypi.org/project/scikit-criteria/) if you want
 breadth — they carry many more methods and normalisation schemes. `mcdakit`
 carries eight methods and spends its surface area on stability instead.
+
+## Documentation
+
+- [Quickstart](docs/quickstart.md) — describing a decision, ranking, reading a result
+- [Stability](docs/stability.md) — rank reversal, SPOTIS, sensitivity
+- [Extending](docs/extending.md) — writing and shipping your own method
+- [Contributing](CONTRIBUTING.md) — house rules and the checks CI runs
+- [Design decisions](docs/adr/) — why the architecture is the way it is
+
+Build them locally with `pip install -e ".[docs]" && sphinx-build -b html docs docs/_build/html`.
 
 ## Licence
 

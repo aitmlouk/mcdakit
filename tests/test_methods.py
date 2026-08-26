@@ -42,8 +42,12 @@ class TestTopsis:
     def test_a_dominant_option_scores_one(self, supplier_criteria):
         """An option best on every criterion sits on the ideal point."""
         matrix = [[9, 9, 9, 9], [1, 2, 3, 4], [5, 5, 5, 5]]
-        result = rank(matrix, supplier_criteria, method="topsis",
-                      labels=["Best", "Worst", "Middle"])
+        result = rank(
+            matrix,
+            supplier_criteria,
+            method="topsis",
+            labels=["Best", "Worst", "Middle"],
+        )
         assert result.winner == "Best"
         assert result.score_of("Best") == pytest.approx(1.0)
         assert result.score_of("Worst") == pytest.approx(0.0)
@@ -142,10 +146,12 @@ class TestPreferenceDegree:
     def test_gaussian_reaches_its_known_value_at_s(self):
         """1 - exp(-1/2) is about 0.3935 at d = s."""
         assert preference_degree(20, "gaussian", s=20) == pytest.approx(
-            0.3935, abs=1e-4)
+            0.3935, abs=1e-4
+        )
 
     @pytest.mark.parametrize(
-        "shape", ["usual", "ushape", "vshape", "level", "linear", "gaussian"])
+        "shape", ["usual", "ushape", "vshape", "level", "linear", "gaussian"]
+    )
     def test_a_worse_option_is_never_preferred(self, shape):
         assert preference_degree(-5, shape, q=1, p=2, s=3) == 0.0
 
@@ -161,7 +167,10 @@ class TestPromethee:
 
     def test_the_default_shape_gives_the_expected_order(self, supplier):
         assert rank(supplier, method="promethee").order == [
-            "Supplier B", "Supplier A", "Supplier C"]
+            "Supplier B",
+            "Supplier A",
+            "Supplier C",
+        ]
 
     def test_a_negligible_difference_stops_deciding_the_outcome(self):
         """The point of preference functions: one euro should not outweigh
@@ -177,12 +186,10 @@ class TestPromethee:
         )
 
         shrug = [
-            Criterion("Price", 0.5, "cost",
-                      preference_shape="linear", q=100, p=500),
+            Criterion("Price", 0.5, "cost", preference_shape="linear", q=100, p=500),
             Criterion("Quality", 0.5),
         ]
-        assert rank(matrix, shrug, method="promethee",
-                    labels=labels).winner == "Good"
+        assert rank(matrix, shrug, method="promethee", labels=labels).winner == "Good"
 
 
 class TestOrientation:
@@ -215,7 +222,8 @@ class TestOrientation:
             pytest.skip("ignores weights and magnitudes by design")
         result = rank(matrix, criteria, method=method, labels=labels)
         assert result.winner == "Cheap and fast", (
-            f"{method} ranked the expensive, slow supplier first")
+            f"{method} ranked the expensive, slow supplier first"
+        )
 
     def test_a_benefit_criterion_is_not_inverted(self):
         criteria = [Criterion("Capacity", 1.0, "benefit")]

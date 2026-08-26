@@ -57,19 +57,18 @@ class TestPriorities:
 class TestConsistency:
     def test_circular_judgements_are_flagged(self):
         """A over B, B over C, but C over A cannot all hold."""
-        out = ahp_weights(
-            {(0, 1): 5, (1, 2): 5, (0, 2): 0.2}, names=["X", "Y", "Z"])
+        out = ahp_weights({(0, 1): 5, (1, 2): 5, (0, 2): 0.2}, names=["X", "Y", "Z"])
         assert out["consistency_ratio"] > CONSISTENCY_LIMIT
         assert not out["consistent"]
 
     def test_inconsistency_is_reported_not_raised(self):
         """The analyst decides whether to proceed; taking that away would be
         presumptuous."""
-        out = ahp_weights(
-            {(0, 1): 9, (1, 2): 9, (0, 2): 1 / 9}, names=["X", "Y", "Z"])
+        out = ahp_weights({(0, 1): 9, (1, 2): 9, (0, 2): 1 / 9}, names=["X", "Y", "Z"])
         assert not out["consistent"]
         assert out["weights"].sum() == pytest.approx(1.0), (
-            "weights must still be usable")
+            "weights must still be usable"
+        )
 
     def test_the_random_index_covers_the_usable_range(self):
         """Saaty's table is what makes the ratio comparable across sizes."""
@@ -126,8 +125,14 @@ class TestFeedingRank:
     def test_the_weights_can_drive_a_ranking(self, supplier):
         """A weighting nobody can act on is decoration."""
         out = ahp_weights(
-            {(0, 1): 1 / 9, (0, 2): 1 / 3, (0, 3): 1 / 3,
-             (1, 2): 5, (1, 3): 5, (2, 3): 1},
+            {
+                (0, 1): 1 / 9,
+                (0, 2): 1 / 3,
+                (0, 3): 1 / 3,
+                (1, 2): 5,
+                (1, 3): 5,
+                (2, 3): 1,
+            },
             names=[c.name for c in supplier.criteria],
         )
         criteria = [
@@ -136,4 +141,5 @@ class TestFeedingRank:
         ]
         result = rank(supplier.matrix, criteria, labels=supplier.labels)
         assert result.winner == "Supplier B", (
-            "quality weighted far above price must favour the quality option")
+            "quality weighted far above price must favour the quality option"
+        )

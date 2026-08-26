@@ -67,8 +67,7 @@ class TestDecision:
             Decision([[1], [2]], [Criterion("A")], ["only one"])
 
     def test_labels_default_to_numbered_options(self):
-        assert Decision([[1], [2]], [Criterion("A")]).labels == (
-            "Option 1", "Option 2")
+        assert Decision([[1], [2]], [Criterion("A")]).labels == ("Option 1", "Option 2")
 
     def test_all_zero_weights_are_refused(self):
         """Every criterion muted is not a decision problem, and silently
@@ -93,13 +92,10 @@ class TestDecision:
     def test_weight_scale_does_not_change_the_ranking(self, supplier_criteria):
         """40/30/20/10 and 0.4/0.3/0.2/0.1 are the same input."""
         big = [
-            Criterion(c.name, c.weight * 100, c.direction)
-            for c in supplier_criteria
+            Criterion(c.name, c.weight * 100, c.direction) for c in supplier_criteria
         ]
         matrix = [[9, 5, 7, 6], [6, 9, 8, 9], [7, 7, 6, 5]]
-        assert (
-            rank(matrix, big).order == rank(matrix, supplier_criteria).order
-        )
+        assert rank(matrix, big).order == rank(matrix, supplier_criteria).order
 
     def test_without_drops_exactly_one_option(self, supplier):
         reduced = supplier.without(1)

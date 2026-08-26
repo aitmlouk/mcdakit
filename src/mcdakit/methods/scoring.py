@@ -1,15 +1,13 @@
-"""Additive scoring methods: simple, weighted, and SAW.
-
-All three take an already-oriented matrix — see :mod:`mcdakit.orientation` —
-and return a score per option where higher is better.
-"""
+"""Additive scoring methods: simple, weighted, and SAW."""
 
 from __future__ import annotations
 
 import numpy as np
 
+from .base import Method, ScoringContext
 
-def simple_scoring(data: np.ndarray, weights: np.ndarray = None) -> np.ndarray:
+
+def simple_scoring(data: np.ndarray, weights: np.ndarray | None = None) -> np.ndarray:
     """Sum of raw scores per option, ignoring weights entirely.
 
     Useful only as a baseline and when every criterion is on the same scale.
@@ -64,3 +62,34 @@ def saw(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
     normalized = data / col_max
 
     return (normalized @ w).astype(float)
+
+
+class SimpleScoring(Method):
+    """Unweighted sum of the oriented scores."""
+
+    name = "simple_scoring"
+    summary = "Unweighted sum of scores. A baseline; ignores weights."
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return simple_scoring(ctx.data)
+
+
+class WeightedScoring(Method):
+    """Weighted sum over min-max normalised scores."""
+
+    name = "weighted_scoring"
+    summary = "Weighted sum over min-max normalised scores."
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return weighted_scoring(ctx.data, ctx.weights)
+
+
+class Saw(Method):
+    """Simple Additive Weighting."""
+
+    name = "saw"
+    summary = "Simple Additive Weighting; normalises by the column maximum."
+    citation = "Churchman and Ackoff (1954)"
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return saw(ctx.data, ctx.weights)

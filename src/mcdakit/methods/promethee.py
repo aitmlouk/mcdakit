@@ -11,6 +11,8 @@ from collections.abc import Sequence
 
 import numpy as np
 
+from .base import Method, ScoringContext
+
 SHAPES = ("usual", "ushape", "vshape", "level", "linear", "gaussian")
 
 
@@ -28,14 +30,14 @@ def preference_degree(
     as decisively as it beats 9000. That is right for a rating out of ten and
     wrong for money and days, which is why the others exist.
 
-    ==========  ========  =================================================
-    ``usual``   Type I    step at zero
-    ``ushape``  Type II   indifferent up to ``q``, then total
-    ``vshape``  Type III  linear from zero to ``p``
-    ``level``   Type IV   indifferent to ``q``, half up to ``p``, then total
-    ``linear``  Type V    indifferent to ``q``, linear to ``p``, then total
-    ``gaussian``Type VI   smooth, governed by ``s``
-    ==========  ========  =================================================
+    ============  ========  ===============================================
+    ``usual``     Type I    step at zero
+    ``ushape``    Type II   indifferent up to ``q``, then total
+    ``vshape``    Type III  linear from zero to ``p``
+    ``level``     Type IV   indifferent to ``q``, half up to ``p``, then total
+    ``linear``    Type V    indifferent to ``q``, linear to ``p``, then total
+    ``gaussian``  Type VI   smooth, governed by ``s``
+    ============  ========  ===============================================
 
     ``difference`` is (this option) minus (the other) *after* cost criteria
     have been oriented, so a difference at or below zero is never a preference.
@@ -131,3 +133,32 @@ def promethee(
 ) -> np.ndarray:
     """Net flows, in ``[-1, 1]``, higher is better."""
     return flows(preference_matrix(data, weights, shapes))[2].astype(float)
+
+
+def shapes_from(criteria) -> tuple | None:
+    """``(shape, q, p, s)`` per criterion, or ``None`` if all are the default.
+
+    Returning ``None`` when nothing was configured keeps PROMETHEE on its
+    simple path, so a problem that never touched preference functions scores
+    bit-identically to one built before they existed.
+    """
+    shapes = [(c.preference_shape, c.q, c.p, c.s) for c in criteria]
+    if all(shape == "usual" for shape, _q, _p, _s in shapes):
+        return None
+    return tuple(shapes)
+
+
+class Promethee(Method):
+    """PROMETHEE II as a registered method.
+
+    Reads each criterion's ``preference_shape``, ``q``, ``p`` and ``s`` off the
+    problem, so the six preference functions need no extra plumbing at the
+    call site.
+    """
+
+    name = "promethee"
+    summary = "PROMETHEE II net flows, with six preference-function shapes."
+    citation = "Brans and Vincke (1985)"
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return promethee(ctx.data, ctx.weights, shapes_from(ctx.criteria), **ctx.opts)

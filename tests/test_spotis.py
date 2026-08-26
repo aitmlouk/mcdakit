@@ -29,7 +29,8 @@ class TestReversalFreedom:
         reduced = rank(procurement.without(3), method="spotis")
         for label in reduced.decision.labels:
             assert reduced.score_of(label) == pytest.approx(
-                full.score_of(label), abs=1e-12)
+                full.score_of(label), abs=1e-12
+            )
 
     def test_the_documented_supplier_case(self, procurement):
         """Kestrel beats Nordpack with the rejected option present, and still
@@ -43,7 +44,8 @@ class TestReversalFreedom:
         after = rank(survivors, method="weighted_scoring")
         assert before.winner == "Kestrel Supply"
         assert after.winner == "Nordpack", (
-            "weighted scoring must show the reversal the README describes")
+            "weighted scoring must show the reversal the README describes"
+        )
 
     def test_adding_an_option_cannot_reorder_the_existing_ones(self, procurement):
         """Reversal-freedom runs both ways: a new candidate joining the
@@ -58,9 +60,7 @@ class TestReversalFreedom:
         kept = [label for label in after.order if label != "Latecomer"]
         assert kept == before.order
 
-    def test_a_reversal_prone_method_is_caught_by_the_same_check(
-        self, procurement
-    ):
+    def test_a_reversal_prone_method_is_caught_by_the_same_check(self, procurement):
         """The check itself must be capable of reporting True, or the SPOTIS
         result above would prove nothing."""
         check = reversal_check(procurement, method="weighted_scoring")
@@ -87,8 +87,9 @@ class TestBounds:
             Criterion("Price", 0.5, "cost", bounds=(2.0, 4.0)),
             Criterion("Quality", 0.5, "benefit", bounds=(0, 10)),
         ]
-        result = rank([[2.0, 10.0], [4.0, 0.0]], criteria, "spotis",
-                      ["Perfect", "Awful"])
+        result = rank(
+            [[2.0, 10.0], [4.0, 0.0]], criteria, "spotis", ["Perfect", "Awful"]
+        )
         assert result.score_of("Perfect") == pytest.approx(0.0)
         assert result.score_of("Awful") == pytest.approx(-1.0)
 
@@ -180,6 +181,5 @@ class TestPaperExample:
         assert result.order == ["A1", "A3", "A2", "A4"]
 
     def test_this_problem_is_reversal_free_too(self):
-        check = reversal_check(self.MATRIX, self.CRITERIA, "spotis",
-                               labels=self.LABELS)
+        check = reversal_check(self.MATRIX, self.CRITERIA, "spotis", labels=self.LABELS)
         assert check["reversed"] is False

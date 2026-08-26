@@ -31,8 +31,13 @@ classifiers = [
 dependencies = ["numpy>=1.21"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "ruff>=0.5", "hypothesis>=6"]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.5", "hypothesis>=6", "mypy>=1.8"]
 compare = ["pymcdm>=1.1"]
+docs = ["sphinx>=7", "furo>=2024.1", "myst-parser>=2"]
+
+[project.entry-points."mcdakit.methods"]
+# Third-party packages advertise their methods under this group; the built-ins
+# are registered directly, so nothing is listed here.
 
 [project.urls]
 Homepage = "https://github.com/aitmlouk/mcdakit"
@@ -41,6 +46,16 @@ Changelog = "https://github.com/aitmlouk/mcdakit/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcdakit"]
+
+[tool.mypy]
+# Type-checking floor only; the package still runs on 3.9. Recent mypy cannot
+# target 3.9, and numpy's own stubs need 3.12 syntax to parse.
+python_version = "3.12"
+files = ["src/mcdakit"]
+ignore_missing_imports = true
+warn_unused_configs = true
+warn_redundant_casts = true
+no_implicit_optional = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "src"]
@@ -53,6 +68,9 @@ filterwarnings = ["error::DeprecationWarning"]
 
 [tool.ruff]
 line-length = 88
+# Documentation code blocks are aligned for reading, not for the formatter.
+# Reformatting them collapses the comment alignment that makes them legible.
+extend-exclude = ["*.md"]
 src = ["src", "tests"]
 target-version = "py39"
 

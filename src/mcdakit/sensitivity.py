@@ -10,6 +10,7 @@ finding from one that flips at 4%, even when both are printed as "first".
 from __future__ import annotations
 
 import dataclasses
+import warnings
 
 import numpy as np
 
@@ -26,22 +27,23 @@ ROBUST_THRESHOLD = 0.25
 BISECTION_STEPS = 40
 
 
-def _winner_index(
-    decision: Decision, weights: np.ndarray, method: str
-) -> int | None:
+def _winner_index(decision: Decision, weights: np.ndarray, method: str) -> int | None:
     """Index of the top option under these weights."""
     reweighted = _with_weights(decision, weights)
-    scores, _free, _messages = score(reweighted, method, **_quiet(method))
+    with warnings.catch_warnings():
+        # A bisection re-scores the same problem hundreds of times. Any
+        # warning the method emits — SPOTIS's missing-bounds notice, or
+        # anything a third-party method raises — is about the problem, not
+        # about this particular trial weighting, and the caller has already
+        # heard it once from the original ranking. Repeating it hundreds of
+        # times would bury it. Suppressing here rather than passing a
+        # method-specific flag keeps this working for methods we have never
+        # seen.
+        warnings.simplefilter("ignore")
+        scores, _free, _messages = score(reweighted, method)
     if scores is None or len(scores) == 0:
         return None
     return int(np.argmax(scores))
-
-
-def _quiet(method: str) -> dict:
-    """SPOTIS's missing-bounds warning would fire on every one of the hundreds
-    of re-scorings a bisection performs. The caller has already been warned
-    once by the original ranking; repeating it here would bury it."""
-    return {"warn": False} if method == "spotis" else {}
 
 
 def _with_weights(decision: Decision, weights) -> Decision:
@@ -144,8 +146,7 @@ def sensitivity(result: Result) -> dict:
     """
     if not isinstance(result, Result):
         raise McdaError(
-            "sensitivity() takes a Result from rank(), got "
-            f"{type(result).__name__}."
+            f"sensitivity() takes a Result from rank(), got {type(result).__name__}."
         )
 
     decision = result.decision
@@ -184,9 +185,7 @@ def sensitivity(result: Result) -> dict:
                 0.0, float(weights[index]) + sign * smallest * total * 1.001
             )
             flipped = _winner_index(decision, nudge, method)
-            flips_to = (
-                decision.labels[flipped] if flipped is not None else ""
-            )
+            flips_to = decision.labels[flipped] if flipped is not None else ""
 
         rows.append(
             {
