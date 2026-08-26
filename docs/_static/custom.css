@@ -1,0 +1,151 @@
+/* Refinements on top of Furo. Every rule here uses Furo's own CSS variables
+   rather than hardcoded colours, so the dark-mode toggle keeps working: set a
+   literal hex and it will be wrong in one of the two modes. */
+
+/* ---- Typography ------------------------------------------------------- */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+article h1 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+article h2 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 2.2rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--color-background-border);
+}
+
+article h3 {
+  font-weight: 600;
+}
+
+/* ---- Code ------------------------------------------------------------- */
+
+div.highlight {
+  border-radius: 8px;
+  border: 1px solid var(--color-background-border);
+}
+
+div.highlight pre {
+  padding: 0.9rem 1rem;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+
+/* Inline code should read as code without shouting. Furo's default is a flat
+   background; a hairline border separates it from surrounding prose. */
+code.literal {
+  border-radius: 4px;
+  padding: 0.12em 0.35em;
+  font-size: 0.87em;
+  border: 1px solid var(--color-background-border);
+}
+
+/* ---- Tables ----------------------------------------------------------- */
+
+table.docutils {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-background-border);
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+table.docutils th {
+  background: var(--color-background-secondary);
+  font-weight: 600;
+  text-align: left;
+}
+
+table.docutils td,
+table.docutils th {
+  border: none;
+  border-bottom: 1px solid var(--color-background-border);
+  padding: 0.55rem 0.8rem;
+}
+
+table.docutils tr:last-child td {
+  border-bottom: none;
+}
+
+/* A wide table must scroll inside its own box rather than pushing the page
+   sideways — the method and reversal-rate tables are the usual offenders. */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+/* ---- Admonitions ------------------------------------------------------ */
+
+.admonition,
+div.admonition {
+  border-radius: 8px;
+  box-shadow: none;
+  border-left-width: 3px;
+}
+
+/* ---- API reference ---------------------------------------------------- */
+
+dl.py.class > dt,
+dl.py.function > dt,
+dl.py.data > dt,
+dl.py.method > dt {
+  border-radius: 6px;
+  border-left: 3px solid var(--color-brand-primary);
+  padding-left: 0.7rem;
+}
+
+/* ---- Navigation ------------------------------------------------------- */
+
+.sidebar-drawer {
+  border-right: 1px solid var(--color-background-border);
+}
+
+.toc-drawer {
+  border-left: 1px solid var(--color-background-border);
+}
+
+.sidebar-tree .current-page > .reference {
+  font-weight: 600;
+}
+
+/* ---- Copy button ------------------------------------------------------ */
+
+/* Show it only on hover, so it does not sit over the first line of every
+   example while reading. */
+button.copybtn {
+  opacity: 0;
+  transition: opacity 120ms ease-in-out;
+}
+
+div.highlight:hover button.copybtn,
+button.copybtn:focus-visible {
+  opacity: 0.7;
+}
+
+button.copybtn:hover {
+  opacity: 1;
+}
+
+/* ---- Accessibility ---------------------------------------------------- */
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

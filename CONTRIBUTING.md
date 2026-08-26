@@ -73,6 +73,13 @@ Where things go:
 | `docs/extending.md` | Writing and shipping a method |
 | `docs/api.md` | Generated reference; add an `automodule` entry for new modules |
 | `docs/adr/` | Decisions with consequences, and their costs |
+| `docs/_static/custom.css` | Theme refinements — see below |
+
+The theme is Furo, which ships light and dark modes with a toggle in the
+header (and follows the reader's system setting by default). `custom.css`
+refines it; every rule there uses Furo's own CSS variables rather than
+hardcoded colours, because a literal hex will be wrong in one of the two
+modes. If you add a rule, check it in both.
 
 Two rules the tests enforce: every name in `mcdakit.__all__` must appear in
 `docs/api.md`, and every public callable needs a docstring. A name nobody can
