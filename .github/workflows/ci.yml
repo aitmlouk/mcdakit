@@ -39,11 +39,12 @@ jobs:
         run: pytest -q --cov=mcdakit --cov-report=term-missing --cov-fail-under=100
       - name: The reversal benchmark must still measure SPOTIS at 0.0%
         run: python benchmarks/reversal.py --trials 200
-      - name: Every shipped method must pass the contributor conformance suite
-        run: |
-          for m in SimpleScoring WeightedScoring Saw Topsis Vikor Electre Promethee Spotis; do
-            python -m mcdakit.testing "mcdakit.methods:$m" --no-strict
-          done
+      # A shell loop here would need one form for bash and another for
+      # PowerShell. TestConformanceCli in tests/test_packaging.py already
+      # drives the same command for every built-in, cross-platform, so this
+      # only has to prove the entry point itself works when invoked directly.
+      - name: The conformance CLI runs
+        run: python -m mcdakit.testing mcdakit.methods:Spotis --no-strict
 
   lint:
     runs-on: ubuntu-latest
