@@ -6,6 +6,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Extensible methods.** A ranking method is now a `Method` object that
+  declares what it needs, registered by name. A method defined outside the
+  package is a first-class citizen: reachable from `rank()`, included in
+  `compare_methods()`, analysable by `sensitivity()`. See `docs/extending.md`.
+- `Method`, `ScoringContext`, `MethodResult` and `Wants` — the extension
+  contract. `Wants.RAW` lets a method ask for the un-oriented matrix, which is
+  what SPOTIS needed a hardcoded special case for previously.
+- `register()`, `unregister()`, `available()`, `get_method()`, `has_method()`
+  and `method_names()` — the registry.
+- Entry-point discovery under the `mcdakit.methods` group: an installed
+  package's methods are found automatically, with no import by the user. A
+  plugin that fails to load warns (`PluginLoadError`) rather than taking the
+  registry down with it.
+- `py.typed`, so downstream type checkers see the annotations.
+- Sphinx documentation, a CI matrix over Python 3.9-3.13 on Linux, macOS and
+  Windows, `CONTRIBUTING.md`, and an architecture decision record.
+
+### Changed
+
+- `METHODS` is a live view of the registry rather than a frozen tuple, so a
+  method registered at any point is immediately visible. It still supports
+  everything a tuple did (`in`, iteration, indexing, `len`, `==`).
+- Passing a keyword argument no method reads now raises `McdaError` instead of
+  being silently ignored — the same class of bug as the `v=` defect fixed
+  before 0.1.0, caught generically this time.
+- `Result.ranks` is a property; it was always populated, but was typed as
+  optional.
+
 ## [0.1.0] - 2026-08-26
 
 First release.
