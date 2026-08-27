@@ -28,12 +28,12 @@ the README for why `saw` looks so stable in this particular experiment.
 ## Why it happens
 
 ```
-WITH the rejected option:     Kestrel 0.7048  >  Nordpack 0.6982
-WITHOUT it:                   Nordpack 0.6452 >  Kestrel 0.6300
+WITH the rejected option:     Option 1 0.7048  >  Option 2 0.6982
+WITHOUT it:                   Option 2 0.6452 >  Option 1 0.6300
 ```
 
-Dropping Bytharm — the cheapest option, and the one nobody would buy — shrank
-the price span from 1.20 to 0.65, lifting Nordpack's normalised price score
+Dropping Option 4 — the cheapest option, and the one nobody would buy — shrank
+the price span from 1.20 to 0.65, lifting Option 2's normalised price score
 from 0.417 to 0.769. **A rejected option was defining the scale.**
 
 ## SPOTIS

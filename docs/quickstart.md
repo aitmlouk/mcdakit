@@ -37,15 +37,15 @@ matrix = [
     [3.40, 9.0, 11, 7.0],
     [2.20, 3.0, 32, 2.0],
 ]
-labels = ["Kestrel Supply", "Nordpack", "Meridian", "Bytharm"]
+labels = ["Option 1", "Option 2", "Option 3", "Option 4"]
 
 result = rank(matrix, criteria, method="spotis", labels=labels)
 
-result.winner        # 'Kestrel Supply'
+result.winner        # 'Option 1'
 result.order         # best first
 result.ranking       # [(label, score), ...]
 result.scores        # in the original row order
-result.rank_of("Nordpack")
+result.rank_of("Option 2")
 print(result)        # a readable table
 ```
 

@@ -39,7 +39,7 @@ def supplier(supplier_criteria):
 def procurement():
     """The four-supplier case from the README, with real units and bounds.
 
-    Kestrel wins on the full shortlist. Nordpack overtakes it under most
+    Option 1 wins on the full shortlist. Option 2 overtakes it under most
     methods once the rejected option is removed, because that option was
     defining the price scale — the worked example behind SPOTIS.
     """
@@ -50,13 +50,13 @@ def procurement():
         Criterion("Support", 0.15, "benefit", bounds=(0, 10)),
     ]
     matrix = [
-        [2.75, 7.0, 14, 8.0],  # Kestrel Supply
-        [2.90, 8.5, 16, 8.0],  # Nordpack
-        [3.40, 9.0, 11, 7.0],  # Meridian
-        [2.20, 3.0, 32, 2.0],  # Bytharm  (rejected: last under every method,
+        [2.75, 7.0, 14, 8.0],  # Option 1
+        [2.90, 8.5, 16, 8.0],  # Option 2
+        [3.40, 9.0, 11, 7.0],  # Option 3
+        [2.20, 3.0, 32, 2.0],  # Option 4  (rejected: last under every method,
         #  and the cheapest, so it defines the price scale)
     ]
-    labels = ["Kestrel Supply", "Nordpack", "Meridian", "Bytharm"]
+    labels = ["Option 1", "Option 2", "Option 3", "Option 4"]
     return Decision(matrix, criteria, labels)
 
 

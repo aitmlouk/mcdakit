@@ -56,10 +56,10 @@ matrix = [
     [3.40, 9.0, 11, 7.0],
     [2.20, 3.0, 32, 2.0],
 ]
-labels = ["Kestrel Supply", "Nordpack", "Meridian", "Bytharm"]
+labels = ["Option 1", "Option 2", "Option 3", "Option 4"]
 
 result = rank(matrix, criteria, method="spotis", labels=labels)
-result.winner                 # 'Kestrel Supply'
+result.winner                 # 'Option 1'
 sensitivity(result)["level"]  # 'fragile'
 ```
 

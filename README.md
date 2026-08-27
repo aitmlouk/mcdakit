@@ -17,15 +17,15 @@ criteria = [
     Criterion("Support", weight=0.15, direction="benefit", bounds=(0, 10)),
 ]
 matrix = [
-    [2.75, 7.0, 14, 8.0],  # Kestrel Supply
-    [2.90, 8.5, 16, 8.0],  # Nordpack
-    [3.40, 9.0, 11, 7.0],  # Meridian
-    [2.20, 3.0, 32, 2.0],  # Bytharm  — cheapest, but nobody would buy it
+    [2.75, 7.0, 14, 8.0],  # Option 1
+    [2.90, 8.5, 16, 8.0],  # Option 2
+    [3.40, 9.0, 11, 7.0],  # Option 3
+    [2.20, 3.0, 32, 2.0],  # Option 4  — cheapest, but nobody would buy it
 ]
-labels = ["Kestrel Supply", "Nordpack", "Meridian", "Bytharm"]
+labels = ["Option 1", "Option 2", "Option 3", "Option 4"]
 
 result = rank(matrix, criteria, method="spotis", labels=labels)
-result.winner  # 'Kestrel Supply'
+result.winner  # 'Option 1'
 
 report = sensitivity(result)
 report["level"]  # 'fragile'
@@ -36,9 +36,9 @@ report["weakest"]  # 'Quality' — the weight with the least room to move
 criterion, how far its weight can move before a *different* option wins:
 
 ```
-Price       0.40   flips at  7.8% (down)  ->  Nordpack
-Quality     0.25   flips at  3.9% (up)    ->  Nordpack
-Lead time   0.20   flips at  8.8% (down)  ->  Nordpack
+Price       0.40   flips at  7.8% (down)  ->  Option 2
+Quality     0.25   flips at  3.9% (up)    ->  Option 2
+Lead time   0.20   flips at  8.8% (down)  ->  Option 2
 Support     0.15   never flips
 ```
 
@@ -92,13 +92,13 @@ guaranteed rather than measured.
 In the supplier data above, dropping the rejected option flips the top two:
 
 ```
-WITH the rejected option:     Kestrel 0.7048  >  Nordpack 0.6982
-WITHOUT it:                   Nordpack 0.6452 >  Kestrel 0.6300
+WITH the rejected option:     Option 1  0.7048  >  Option 2  0.6982
+WITHOUT it:                   Option 2  0.6452  >  Option 1  0.6300
 ```
 
-Nordpack overtook Kestrel because dropping Bytharm — the cheapest option, and
+Option 2 overtook Option 1 because dropping Option 4 — the cheapest option, and
 the one nobody would buy — shrank the price span from 1.20 to 0.65, lifting
-Nordpack's normalised price score from 0.417 to 0.769. **A rejected option was
+Option 2's normalised price score from 0.417 to 0.769. **A rejected option was
 defining the scale.**
 
 SPOTIS (Dezert et al., FUSION 2020) measures every option against a fixed
@@ -124,7 +124,7 @@ Check any method for reversal on your own data:
 from mcdakit import reversal_check
 
 reversal_check(matrix, criteria, method="topsis", labels=labels)
-# {'reversed': True, 'cases': [{'removed': 'Bytharm', ...}]}
+# {'reversed': True, 'cases': [{'removed': 'Option 4', ...}]}
 ```
 
 ## Methods
@@ -156,8 +156,8 @@ from mcdakit import compare_methods, agreement
 
 results = compare_methods(matrix, criteria, labels=labels)
 agreement(results)
-# {'winners': {'Kestrel Supply': 5, 'Nordpack': 2, 'Meridian': 1},
-#  'consensus': 'Kestrel Supply', 'votes': 5, 'of': 8, 'unanimous': False}
+# {'winners': {'Option 1': 5, 'Option 2': 2, 'Option 3': 1},
+#  'consensus': 'Option 1', 'votes': 5, 'of': 8, 'unanimous': False}
 ```
 
 A 5-2-1 split says the options are close enough that the modelling choice
@@ -182,7 +182,7 @@ out = group_rank(
         Participant("Chair", [[2.75, 7.0], [2.90, 7.0]], weight=2.0),
     ],
     criteria,
-    labels=["Kestrel", "Nordpack"],
+    labels=["Option 1", "Option 2"],
 )
 
 out["result"].winner        # ranking the averaged scores

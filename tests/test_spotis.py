@@ -33,17 +33,17 @@ class TestReversalFreedom:
             )
 
     def test_the_documented_supplier_case(self, procurement):
-        """Kestrel beats Nordpack with the rejected option present, and still
+        """Option 1 beats Option 2 with the rejected option present, and still
         beats it once that option is removed. Under weighted scoring it does
         not — which is why this case is in the README."""
-        assert rank(procurement, method="spotis").winner == "Kestrel Supply"
+        assert rank(procurement, method="spotis").winner == "Option 1"
         survivors = procurement.without(3)
-        assert rank(survivors, method="spotis").winner == "Kestrel Supply"
+        assert rank(survivors, method="spotis").winner == "Option 1"
 
         before = rank(procurement, method="weighted_scoring")
         after = rank(survivors, method="weighted_scoring")
-        assert before.winner == "Kestrel Supply"
-        assert after.winner == "Nordpack", (
+        assert before.winner == "Option 1"
+        assert after.winner == "Option 2", (
             "weighted scoring must show the reversal the README describes"
         )
 
@@ -65,7 +65,7 @@ class TestReversalFreedom:
         result above would prove nothing."""
         check = reversal_check(procurement, method="weighted_scoring")
         assert check["reversed"] is True
-        assert check["cases"][0]["removed"] == "Bytharm"
+        assert check["cases"][0]["removed"] == "Option 4"
 
 
 class TestBounds:
