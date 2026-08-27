@@ -8,6 +8,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Weights derived from the data** (`mcdakit.weighting`). `derive_weights()`
+  with `entropy`, `critic`, `std` and `equal`, plus a registry so a scheme
+  written elsewhere is reachable by name. AHP asks a person what matters;
+  these read it off the decision matrix, for when nobody has a view or the
+  analyst wants a starting point that is not an opinion. `entropy` is
+  scale-invariant, `std` is not, and `critic` additionally discounts criteria
+  that duplicate each other so a doubled dimension is not counted twice.
+  Documented as *computed*, not *correct*: a criterion can be uninformative in
+  the current shortlist and still be the one that matters.
+
 - **Group decisions** (`mcdakit.group`). `group_rank()` combines several
   stakeholders and reports how much they disagreed. Two aggregations are run
   because they answer different questions: averaging the scores treats the

@@ -373,7 +373,7 @@ Being straight about the limits, since the answer shapes what you can build:
 |---|---|
 | Ranking methods | Registry + entry points |
 | Normalisation schemes | Registry, or a bare callable |
-| Weighting schemes | `ahp_weights()` only; no registry — compute weights yourself and pass them on `Criterion` |
+| Weighting schemes | Registry, or a bare callable — `entropy`, `critic`, `std`, `equal`, plus `ahp_weights()` for elicited weights |
 | Group aggregation | `mcdakit.group` — several stakeholders, with a disagreement report. Not pluggable: two aggregations ship, adding a third means a PR |
 | Sensitivity analyses | `sensitivity()` only; not pluggable |
 

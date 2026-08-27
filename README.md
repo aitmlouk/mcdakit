@@ -207,6 +207,32 @@ averages 9 and 2 — the same number, completely different findings.
 Participants must score the same options and criteria; a mismatch is refused
 rather than averaged over uneven evidence.
 
+## Weights from the data
+
+AHP below asks a person what matters. When nobody has a view — or you want a
+starting point that is not an opinion — derive the weights from the decision
+matrix instead:
+
+```python
+from mcdakit import derive_weights
+
+derive_weights(matrix, "entropy", directions)   # also: critic, std, equal
+```
+
+They share one premise: **a criterion on which all the options score alike
+cannot separate them, so it carries no information.** `entropy` measures that
+in proportions and is scale-invariant; `std` measures raw spread and is not;
+`critic` additionally discounts criteria that duplicate each other, so two
+columns measuring nearly the same thing do not count that dimension twice.
+`equal` is the baseline — if an objective scheme cannot beat it on your
+problem, it is adding complexity rather than information.
+
+Objective here means *computed*, not *correct*. A criterion can be
+uninformative in the current shortlist and still be the one that matters: a
+budget everyone happens to meet is not thereby unimportant.
+
+Register your own with `@register_weighting("name")`, or pass any callable.
+
 ## Weights from pairwise comparisons
 
 People cannot reliably say a criterion is worth 0.35 rather than 0.40, but

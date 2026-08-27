@@ -28,6 +28,20 @@
    :members: sensitivity
 ```
 
+## Weighting
+
+```{eval-rst}
+.. automodule:: mcdakit.weighting
+   :members: derive_weights, entropy_weights, critic_weights, std_weights, equal_weights, register_weighting, get_weighting, available_weightings
+```
+
+```{eval-rst}
+.. py:data:: mcdakit.WEIGHTINGS
+
+   Registered weighting schemes, as ``{name: (function, summary)}``. Use
+   :func:`~mcdakit.available_weightings` for the readable form.
+```
+
 ## AHP
 
 ```{eval-rst}

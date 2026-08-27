@@ -84,6 +84,17 @@ from .sensitivity import (
     sensitivity,
 )
 from .types import Criterion, Decision, McdaError, Result
+from .weighting import (
+    WEIGHTINGS,
+    available_weightings,
+    critic_weights,
+    derive_weights,
+    entropy_weights,
+    equal_weights,
+    get_weighting,
+    register_weighting,
+    std_weights,
+)
 
 # `testing` is imported lazily by users (`from mcdakit.testing import ...`);
 # it is not pulled in here so `import mcdakit` stays free of test scaffolding.
@@ -99,6 +110,7 @@ __all__ = [
     "RANDOM_INDEX",
     "ROBUST_THRESHOLD",
     "SAATY_SCALE",
+    "WEIGHTINGS",
     "BoundsWarning",
     "Criterion",
     "Decision",
@@ -118,12 +130,18 @@ __all__ = [
     "ahp_weights",
     "available",
     "available_normalizations",
+    "available_weightings",
     "compare_methods",
     "comparison_matrix",
     "consistency_ratio",
+    "critic_weights",
+    "derive_weights",
     "disagreement",
+    "entropy_weights",
+    "equal_weights",
     "get_method",
     "get_normalization",
+    "get_weighting",
     "group_rank",
     "has_method",
     "max_normalization",
@@ -134,9 +152,11 @@ __all__ = [
     "rank",
     "register",
     "register_normalization",
+    "register_weighting",
     "reversal_check",
     "score",
     "sensitivity",
+    "std_weights",
     "sum_normalization",
     "unregister",
     "vector_normalization",
