@@ -36,6 +36,14 @@ from .ahp import (
     consistency_ratio,
     priorities,
 )
+from .ai import (
+    AiError,
+    AiProposal,
+    WeightProposal,
+    critique_weights,
+    propose_criteria,
+    propose_weights,
+)
 from .group import (
     Participant,
     aggregate_rankings,
@@ -111,6 +119,8 @@ __all__ = [
     "ROBUST_THRESHOLD",
     "SAATY_SCALE",
     "WEIGHTINGS",
+    "AiError",
+    "AiProposal",
     "BoundsWarning",
     "Criterion",
     "Decision",
@@ -123,6 +133,7 @@ __all__ = [
     "Result",
     "ScoringContext",
     "Wants",
+    "WeightProposal",
     "__version__",
     "aggregate_rankings",
     "aggregate_scores",
@@ -135,6 +146,7 @@ __all__ = [
     "comparison_matrix",
     "consistency_ratio",
     "critic_weights",
+    "critique_weights",
     "derive_weights",
     "disagreement",
     "entropy_weights",
@@ -149,6 +161,8 @@ __all__ = [
     "minmax_normalization",
     "orient",
     "priorities",
+    "propose_criteria",
+    "propose_weights",
     "rank",
     "register",
     "register_normalization",

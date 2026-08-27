@@ -207,6 +207,40 @@ averages 9 and 2 — the same number, completely different findings.
 Participants must score the same options and criteria; a mismatch is refused
 rather than averaged over uneven evidence.
 
+## Language-model assistance, verified
+
+An LLM is useful for turning a described problem into a structured one. It is
+not an authority: a model returns weights with the same confidence whether
+they are considered or invented. So the model proposes and the package checks.
+
+```python
+from mcdakit.ai import propose_criteria, propose_weights
+
+# `ask` is any callable mapping a prompt to a reply — no vendor is assumed
+# and no dependency is added.
+proposal = propose_criteria("selecting a component supplier", ask=my_model,
+                            samples=2)
+print(proposal)
+# 3 criteria proposed:
+#   Price (cost, weight 0.50)
+#   ! discarded 'Colour': direction must be one of benefit, cost
+#   agreement across replies: 100%
+#   not applied — construct a Decision to accept
+
+weights = propose_weights("selecting a supplier", proposal.criteria,
+                          ask=my_model, matrix=matrix)
+weights.stability["level"]   # 'fragile' — flips at a 3.2% weight change
+weights.disagrees_with       # ('entropy', 'std') — objective schemes differ
+weights.accepted             # False. Applying it is your decision.
+```
+
+Every suggestion is parsed into validated types, so a malformed answer is
+rejected with a reason. Proposed weights are put through `sensitivity()`, so
+you learn whether the recommendation survives the model being somewhat wrong.
+Asking twice measures self-consistency, which one reply cannot reveal.
+
+`critique_weights()` applies the same checks to weights from any source.
+
 ## Weights from the data
 
 AHP below asks a person what matters. When nobody has a view — or you want a

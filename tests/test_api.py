@@ -151,6 +151,9 @@ class TestPackage:
             "collections",
             "pathlib",
             "enum",
+            "json",
+            "re",
+            "importlib",
         }
         for path in root.rglob("*.py"):
             for line in path.read_text().splitlines():

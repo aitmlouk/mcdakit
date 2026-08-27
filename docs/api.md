@@ -14,6 +14,13 @@
    :members: rank, score, compare_methods, agreement, reversal_check, as_decision
 ```
 
+## Language-model assistance
+
+```{eval-rst}
+.. automodule:: mcdakit.ai
+   :members: propose_criteria, propose_weights, critique_weights, AiProposal, WeightProposal, AiError
+```
+
 ## Group decisions
 
 ```{eval-rst}

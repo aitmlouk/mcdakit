@@ -8,6 +8,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Language-model assistance** (`mcdakit.ai`), designed so that the model
+  proposes and the package verifies. `propose_criteria()` and
+  `propose_weights()` turn a described problem into validated
+  `Criterion` objects; anything malformed or out of range is rejected with a
+  reason rather than absorbed. Proposed weights are run through
+  `sensitivity()`, so the caller learns whether the resulting recommendation
+  would survive the model being somewhat wrong, and are compared against the
+  objective schemes in `mcdakit.weighting`, so a model that orders importance
+  unlike every data-driven method is flagged. Asking more than once measures
+  the model's self-consistency, which a single reply cannot reveal. Nothing is
+  applied automatically.
+- `critique_weights()` applies the same scrutiny to weights from any source —
+  elicited from a person, taken from a previous study, or produced by a model
+  this package never saw.
+- The provider is injected as a plain callable, so **no LLM dependency is
+  added**: NumPy remains the only runtime requirement, and the module is
+  deterministic under test.
+
 - **Weights derived from the data** (`mcdakit.weighting`). `derive_weights()`
   with `entropy`, `critic`, `std` and `equal`, plus a registry so a scheme
   written elsewhere is reachable by name. AHP asks a person what matters;
