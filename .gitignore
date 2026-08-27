@@ -13,3 +13,6 @@ htmlcov/
 dist/
 docs/_build/
 .mypy_cache/
+
+# Manuscript drafts — kept out of the repo until submission.
+paper/
