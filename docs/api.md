@@ -14,6 +14,13 @@
    :members: rank, score, compare_methods, agreement, reversal_check, as_decision
 ```
 
+## Group decisions
+
+```{eval-rst}
+.. automodule:: mcdakit.group
+   :members: Participant, group_rank, aggregate_scores, aggregate_rankings, disagreement
+```
+
 ## Sensitivity analysis
 
 ```{eval-rst}

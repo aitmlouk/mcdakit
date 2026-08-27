@@ -164,6 +164,49 @@ A 5-2-1 split says the options are close enough that the modelling choice
 decides the outcome. Collapsing that into one number would hide the most
 useful thing on the table.
 
+## Several stakeholders
+
+Two people scoring the same options rarely agree, and the useful question is
+not only *what did the group decide* but *how much did they disagree, and does
+the answer survive it*:
+
+```python
+from mcdakit import Criterion
+from mcdakit.group import Participant, group_rank
+
+criteria = [Criterion("Price", 0.5, "cost"), Criterion("Quality", 0.5)]
+out = group_rank(
+    [
+        Participant("Alice", [[2.75, 8.0], [2.90, 6.0]]),
+        Participant("Bob",   [[2.75, 5.0], [2.90, 9.0]]),
+        Participant("Chair", [[2.75, 7.0], [2.90, 7.0]], weight=2.0),
+    ],
+    criteria,
+    labels=["Kestrel", "Nordpack"],
+)
+
+out["result"].winner        # ranking the averaged scores
+out["borda"]["order"][0]    # combining each person's ranking
+out["agree"]                # did the two agree?
+out["unanimous"]            # did every participant, alone, pick the winner?
+out["disagreement"]["most_contested_option"]
+```
+
+Two aggregations are reported because they answer different questions.
+**Averaging the scores** treats the group as one better-informed judge — right
+when the differences are noise. **Combining the rankings** (Borda) treats each
+person as a voter — right when the differences are real preferences, and it
+stops one outlying score dragging the mean.
+
+When they disagree, `agree` is `False`, and *that* is the finding: the answer
+depends on which model of the group you accept.
+
+`disagreement()` separates a mean of 5.5 everyone agreed on from one that
+averages 9 and 2 — the same number, completely different findings.
+
+Participants must score the same options and criteria; a mismatch is refused
+rather than averaged over uneven evidence.
+
 ## Weights from pairwise comparisons
 
 People cannot reliably say a criterion is worth 0.35 rather than 0.40, but

@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Group decisions** (`mcdakit.group`). `group_rank()` combines several
+  stakeholders and reports how much they disagreed. Two aggregations are run
+  because they answer different questions: averaging the scores treats the
+  group as one better-informed judge, while Borda-combining each person's
+  ranking treats them as voters and stops one outlying score dragging the
+  mean. When the two pick different winners, `agree` is `False` — that
+  divergence is a finding about the group, not a defect to hide.
+- `disagreement()` separates a mean of 5.5 everyone agreed on from one that
+  averages 9 and 2 — identical numbers, opposite findings — and names the most
+  contested option and criterion.
+- `Participant` carries a weight, so a chair with a casting vote is expressed
+  as a weight rather than by entering them twice. Spread is measured
+  unweighted, because the question is how far the people differ, not how much
+  the chair outweighs them.
+- Participants scoring different options or criteria are refused rather than
+  averaged over uneven evidence.
+
 ## [0.1.0] - 2026-08-27
 
 First release.
