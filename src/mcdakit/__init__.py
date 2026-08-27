@@ -36,14 +36,6 @@ from .ahp import (
     consistency_ratio,
     priorities,
 )
-from .ai import (
-    AiError,
-    AiProposal,
-    WeightProposal,
-    critique_weights,
-    propose_criteria,
-    propose_weights,
-)
 from .group import (
     Participant,
     aggregate_rankings,
@@ -107,6 +99,14 @@ from .weighting import (
 # `testing` is imported lazily by users (`from mcdakit.testing import ...`);
 # it is not pulled in here so `import mcdakit` stays free of test scaffolding.
 
+#: Language-model assistance is deliberately **not** re-exported here. It is
+#: reached as ``from mcdakit.ai import propose_criteria``, so that using it is
+#: a visible choice in the importing module rather than something available by
+#: default. MCDA results are often used to justify a decision to somebody, and
+#: whether a model contributed to the inputs should be legible in the source.
+#: The module costs nothing to have installed: it imports only the standard
+#: library and NumPy, and the model provider is injected by the caller.
+
 __version__ = "0.1.0"
 
 __all__ = [
@@ -119,8 +119,6 @@ __all__ = [
     "ROBUST_THRESHOLD",
     "SAATY_SCALE",
     "WEIGHTINGS",
-    "AiError",
-    "AiProposal",
     "BoundsWarning",
     "Criterion",
     "Decision",
@@ -133,7 +131,6 @@ __all__ = [
     "Result",
     "ScoringContext",
     "Wants",
-    "WeightProposal",
     "__version__",
     "aggregate_rankings",
     "aggregate_scores",
@@ -146,7 +143,6 @@ __all__ = [
     "comparison_matrix",
     "consistency_ratio",
     "critic_weights",
-    "critique_weights",
     "derive_weights",
     "disagreement",
     "entropy_weights",
@@ -161,8 +157,6 @@ __all__ = [
     "minmax_normalization",
     "orient",
     "priorities",
-    "propose_criteria",
-    "propose_weights",
     "rank",
     "register",
     "register_normalization",

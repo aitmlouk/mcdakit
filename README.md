@@ -213,6 +213,12 @@ An LLM is useful for turning a described problem into a structured one. It is
 not an authority: a model returns weights with the same confidence whether
 they are considered or invented. So the model proposes and the package checks.
 
+**It is opt-in.** Nothing in `mcdakit.ai` is re-exported from the package, so
+using it takes an explicit import that stays visible in your source. An MCDA
+result is often used to justify a decision to somebody else, and whether a
+model shaped the inputs belongs in the record. There is no extra install: the
+module imports only the standard library and NumPy.
+
 ```python
 from mcdakit.ai import propose_criteria, propose_weights
 

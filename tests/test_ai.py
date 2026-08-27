@@ -300,3 +300,67 @@ class TestReadableOutput:
     def test_it_states_that_nothing_was_applied(self):
         text = str(propose_criteria("x", ask=replying(GOOD_CRITERIA)))
         assert "not applied" in text
+
+
+class TestOptIn:
+    """Using a model is a choice the source code should record.
+
+    MCDA results are often used to justify a decision to somebody else.
+    Whether a language model contributed to the inputs is part of how that
+    result was reached, so reaching for it requires an explicit import rather
+    than being available by default on the package namespace.
+    """
+
+    def test_importing_mcdakit_does_not_load_the_ai_module(self):
+        import subprocess
+        import sys
+
+        out = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys, mcdakit; print('mcdakit.ai' in sys.modules)",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert out.stdout.strip() == "False", out.stdout + out.stderr
+
+    def test_the_ai_surface_is_not_on_the_package_namespace(self):
+        import mcdakit
+
+        for name in ("propose_criteria", "propose_weights", "critique_weights"):
+            assert not hasattr(mcdakit, name), (
+                f"{name} should require `from mcdakit.ai import ...`"
+            )
+            assert name not in mcdakit.__all__
+
+    def test_the_explicit_import_works(self):
+        from mcdakit.ai import propose_criteria as imported
+
+        assert callable(imported)
+
+    def test_the_module_needs_no_extra_dependency_to_import(self):
+        """Opt-in by import, not by installation: there is no `pip install
+        mcdakit[ai]` to forget, and no vendor SDK to acquire."""
+        import ast
+        import pathlib
+
+        import mcdakit
+
+        source = (pathlib.Path(mcdakit.__file__).parent / "ai.py").read_text()
+        top = set()
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.Import):
+                top |= {a.name.split(".")[0] for a in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                top.add((node.module or "").split(".")[0])
+        assert top <= {
+            "__future__",
+            "collections",
+            "dataclasses",
+            "json",
+            "numpy",
+            "re",
+            "typing",
+        }, f"unexpected imports: {top}"

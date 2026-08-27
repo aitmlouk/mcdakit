@@ -16,6 +16,10 @@
 
 ## Language-model assistance
 
+Opt-in: reached as ``from mcdakit.ai import propose_criteria``, not from the
+package namespace, so that using a model is a visible choice in the importing
+module. No extra dependency is required.
+
 ```{eval-rst}
 .. automodule:: mcdakit.ai
    :members: propose_criteria, propose_weights, critique_weights, AiProposal, WeightProposal, AiError

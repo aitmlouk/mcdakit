@@ -8,8 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **Language-model assistance** (`mcdakit.ai`), designed so that the model
-  proposes and the package verifies. `propose_criteria()` and
+- **Language-model assistance** (`mcdakit.ai`), opt-in and designed so that
+  the model proposes and the package verifies. `propose_criteria()` and
   `propose_weights()` turn a described problem into validated
   `Criterion` objects; anything malformed or out of range is rejected with a
   reason rather than absorbed. Proposed weights are run through
@@ -22,9 +22,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `critique_weights()` applies the same scrutiny to weights from any source —
   elicited from a person, taken from a previous study, or produced by a model
   this package never saw.
+- Nothing in `mcdakit.ai` is re-exported from the package namespace, so using
+  it requires an explicit `from mcdakit.ai import ...` that remains visible in
+  the importing module. An MCDA result is frequently used to justify a
+  decision to a third party, and whether a model shaped the inputs belongs in
+  that record. Importing `mcdakit` does not load the module.
 - The provider is injected as a plain callable, so **no LLM dependency is
-  added**: NumPy remains the only runtime requirement, and the module is
-  deterministic under test.
+  added**: NumPy remains the only runtime requirement, there is no optional
+  extra to install, and the module is deterministic under test.
 
 - **Weights derived from the data** (`mcdakit.weighting`). `derive_weights()`
   with `entropy`, `critic`, `std` and `equal`, plus a registry so a scheme
