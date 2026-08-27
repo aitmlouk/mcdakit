@@ -16,3 +16,4 @@ docs/_build/
 
 # Manuscript drafts — kept out of the repo until submission.
 paper/
+paper-*/
