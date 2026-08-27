@@ -63,9 +63,7 @@ class TestAggregateScores:
         assert decision.matrix.ravel() == pytest.approx([3.0, 7.0])
 
     def test_equal_weights_are_the_default(self, criteria, agreeing):
-        weighted = [
-            Participant(p.name, p.matrix, weight=5.0) for p in agreeing
-        ]
+        weighted = [Participant(p.name, p.matrix, weight=5.0) for p in agreeing]
         assert aggregate_scores(agreeing, criteria).matrix.ravel() == (
             pytest.approx(aggregate_scores(weighted, criteria).matrix.ravel())
         )
@@ -79,9 +77,7 @@ class TestAggregateRankings:
     def test_each_participant_is_ranked_separately(self, criteria, agreeing):
         out = aggregate_rankings(agreeing, criteria, labels=["A", "B"])
         assert set(out["per_participant"]) == {"Alice", "Bob"}
-        assert all(
-            r.winner == "A" for r in out["per_participant"].values()
-        )
+        assert all(r.winner == "A" for r in out["per_participant"].values())
 
     def test_it_ignores_magnitude_where_averaging_does_not(self, split):
         """The point of having both: one wild score decides the mean but
@@ -90,9 +86,7 @@ class TestAggregateRankings:
         borda = aggregate_rankings(split, criteria, labels=["A", "B", "C"])
         mean = aggregate_scores(split, criteria, labels=["A", "B", "C"])
         assert borda["order"][0] == "C"
-        assert int(np.argmax(mean.matrix)) == 0, (
-            "the outlier should dominate the mean"
-        )
+        assert int(np.argmax(mean.matrix)) == 0, "the outlier should dominate the mean"
 
     def test_ties_do_not_invent_a_preference(self):
         """Two options nobody separated must score equally, rather than being
@@ -171,9 +165,7 @@ class TestGroupRank:
             Participant("A", [[9.0], [1.0]]),
             Participant("B", [[1.0], [9.0]]),
         ]
-        assert group_rank(people, criteria, labels=["X", "Y"])[
-            "unanimous"
-        ] is False
+        assert group_rank(people, criteria, labels=["X", "Y"])["unanimous"] is False
 
     def test_every_participant_gets_their_own_result(self, criteria, agreeing):
         out = group_rank(agreeing, criteria, labels=["A", "B"])
@@ -181,8 +173,7 @@ class TestGroupRank:
 
     def test_it_works_with_any_method(self, criteria, agreeing):
         for method in ("topsis", "vikor", "electre", "promethee"):
-            out = group_rank(agreeing, criteria, method=method,
-                             labels=["A", "B"])
+            out = group_rank(agreeing, criteria, method=method, labels=["A", "B"])
             assert out["result"].method == method
 
     def test_spotis_keeps_its_guarantee_on_the_averaged_matrix(self):
@@ -196,8 +187,7 @@ class TestGroupRank:
             Participant("A", [[2.0, 8.0], [3.0, 6.0], [9.0, 1.0]]),
             Participant("B", [[2.5, 7.0], [3.0, 6.5], [8.0, 2.0]]),
         ]
-        out = group_rank(people, criteria, method="spotis",
-                         labels=["X", "Y", "Z"])
+        out = group_rank(people, criteria, method="spotis", labels=["X", "Y", "Z"])
         assert out["result"].reversal_free is True
 
 
