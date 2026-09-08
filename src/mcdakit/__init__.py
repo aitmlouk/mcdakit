@@ -36,6 +36,7 @@ from .ahp import (
     consistency_ratio,
     priorities,
 )
+from .explain import Explanation, Margin, compare, explain
 from .group import (
     Participant,
     aggregate_rankings,
@@ -123,6 +124,8 @@ __all__ = [
     "Criterion",
     "Decision",
     "DuplicateMethodError",
+    "Explanation",
+    "Margin",
     "McdaError",
     "Method",
     "MethodResult",
@@ -139,6 +142,7 @@ __all__ = [
     "available",
     "available_normalizations",
     "available_weightings",
+    "compare",
     "compare_methods",
     "comparison_matrix",
     "consistency_ratio",
@@ -147,6 +151,7 @@ __all__ = [
     "disagreement",
     "entropy_weights",
     "equal_weights",
+    "explain",
     "get_method",
     "get_normalization",
     "get_weighting",

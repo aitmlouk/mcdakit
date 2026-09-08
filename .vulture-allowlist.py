@@ -7,6 +7,7 @@ being a check.
 """
 
 from mcdakit.ai import AiProposal, WeightProposal
+from mcdakit.explain import Explanation
 from mcdakit.methods.registry import _reset_for_testing  # used by tests/
 from mcdakit.types import Criterion, Result
 
@@ -17,3 +18,4 @@ _reset_for_testing  # test support, used in tests/test_registry.py
 AiProposal.accepted  # public API; asserted in tests/test_ai.py
 WeightProposal.accepted  # public API; the "nothing is applied" contract
 WeightProposal.disagrees_with  # public API; asserted in tests/test_ai.py
+Explanation.dominant  # public API; asserted in tests/test_explain.py

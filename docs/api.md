@@ -25,6 +25,13 @@ module. No extra dependency is required.
    :members: propose_criteria, propose_weights, critique_weights, AiProposal, WeightProposal, AiError
 ```
 
+## Explaining a result
+
+```{eval-rst}
+.. automodule:: mcdakit.explain
+   :members: explain, compare, Explanation, Margin, Contribution
+```
+
 ## Group decisions
 
 ```{eval-rst}

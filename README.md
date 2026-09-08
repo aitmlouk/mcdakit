@@ -164,6 +164,38 @@ A 5-2-1 split says the options are close enough that the modelling choice
 decides the outcome. Collapsing that into one number would hide the most
 useful thing on the table.
 
+## Why did this option win?
+
+A ranking is a conclusion, and a conclusion nobody can interrogate is hard to
+act on or defend:
+
+```python
+from mcdakit.explain import explain, compare
+
+print(compare(result, "Option 1", "Option 2"))
+# Option 1 beats Option 2 by 0.0065 under weighted_scoring
+#   attribution: exact
+#   Quality       -0.0625  favours Option 2
+#   Price         +0.0500  favours Option 1
+#   Lead time     +0.0190  favours Option 1
+#   Support       +0.0000  no difference
+#   Lead time is decisive: without it the result reverses
+```
+
+Where the method is a weighted sum — `weighted_scoring`, `saw`,
+`simple_scoring`, `spotis` — the contributions **sum exactly to the score**,
+and the tests assert it. Where it is not — TOPSIS is a ratio of distances,
+VIKOR takes a maximum, ELECTRE and PROMETHEE compare pairwise — no exact
+decomposition exists, so each criterion is instead attributed by removing it
+and re-scoring. Every report says which of the two it used:
+
+```python
+explain(result).basis     # 'exact' or 'leave_one_out'
+```
+
+Presenting an approximation as a decomposition would be the overstatement the
+rest of this package exists to avoid.
+
 ## Several stakeholders
 
 Two people scoring the same options rarely agree, and the useful question is

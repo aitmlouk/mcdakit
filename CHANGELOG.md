@@ -8,6 +8,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Explaining a ranking** (`mcdakit.explain`). `explain()` decomposes an
+  option's score by criterion; `compare()` decomposes the margin between two
+  options and identifies a criterion as *decisive* when reversing it alone
+  would reverse the outcome. Transparency is treated in the recent
+  decision-analysis literature as a precondition for trusting a computed
+  result, and no other Python MCDA library provides it.
+- The attribution is honest about its own validity. For an additive method the
+  contributions sum exactly to the score, and a test asserts it. For TOPSIS,
+  VIKOR, ELECTRE and PROMETHEE no exact decomposition exists, so each
+  criterion is attributed by muting it and re-scoring; `basis` reports which
+  was used, and the printed output carries the caveat.
+
 - **Language-model assistance** (`mcdakit.ai`), opt-in and designed so that
   the model proposes and the package verifies. `propose_criteria()` and
   `propose_weights()` turn a described problem into validated

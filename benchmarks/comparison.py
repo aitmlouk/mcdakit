@@ -226,6 +226,13 @@ def capabilities():
         "no",
     )
     probe(
+        "Explains why an option won",
+        "yes" if _has("mcdakit.explain", "explain") else "no",
+        "no",
+        "no",
+        "no",
+    )
+    probe(
         "Conformance suite for third-party methods",
         "yes" if _has("mcdakit.testing", "check_method") else "no",
         "no",
