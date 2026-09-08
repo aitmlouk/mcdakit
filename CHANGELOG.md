@@ -31,6 +31,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unlike every data-driven method is flagged. Asking more than once measures
   the model's self-consistency, which a single reply cannot reveal. Nothing is
   applied automatically.
+- `propose_comparisons()` elicits *pairwise* judgements rather than a weight
+  vector, because a weight vector cannot contradict itself and a set of
+  ratios can. The replies are assembled into a reciprocal matrix and put
+  through `ahp_weights()`, so a model that answers inconsistently is caught by
+  Saaty's consistency ratio rather than by inspection.
+- `simulate_panel()` scores a problem once per expert persona and returns
+  `Participant` objects, so a simulated panel is scrutinised by the same
+  `group_rank()` and `disagreement()` machinery as a real one. A persona whose
+  reply is malformed is discarded with its reason, and `spread` reports
+  whether the personas differed at all — one that agrees exactly added nothing
+  over a single opinion.
+- `narrate()` writes a result up for a decision report from computed figures
+  only, then checks every numeric literal in the reply against those figures
+  and lists any the model invented.
 - `critique_weights()` applies the same scrutiny to weights from any source —
   elicited from a person, taken from a previous study, or produced by a model
   this package never saw.

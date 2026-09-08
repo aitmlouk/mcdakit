@@ -279,6 +279,39 @@ Asking twice measures self-consistency, which one reply cannot reveal.
 
 `critique_weights()` applies the same checks to weights from any source.
 
+Three further entry points, each with its own check:
+
+```python
+from mcdakit.ai import propose_comparisons, simulate_panel, narrate
+```
+
+**`propose_comparisons()`** asks the model to compare criteria *pairwise* —
+*is price more important than quality, and by how much?* — rather than for a
+weight vector. The difference is that pairwise judgements can contradict each
+other, and Saaty's consistency ratio detects it:
+
+```
+3 pairwise judgements, consistency ratio 2.759 (INCONSISTENT)
+  ! the judgements contradict each other; ask again or revise them by hand
+```
+
+**`simulate_panel()`** scores the problem once per expert persona and returns
+ordinary `Participant` objects, so a simulated panel goes through the same
+`group_rank()` and `disagreement()` machinery as a real one. Human panels are
+costly and cannot be re-run; a simulated panel is reproducible but is a
+model's impression of an expert, so `spread` reports whether the personas
+actually differed — a panel that agrees exactly added nothing over asking
+once.
+
+**`narrate()`** turns a result into a paragraph for a report. The model is
+given only computed figures, so its one available failure is misstating a
+number — and every numeric literal in the reply is checked against what it was
+given:
+
+```python
+narrate(result, ask=model)["unsupported_numbers"]   # ('97.3',)
+```
+
 ## Weights from the data
 
 AHP below asks a person what matters. When nobody has a view — or you want a

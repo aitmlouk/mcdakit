@@ -22,7 +22,7 @@ module. No extra dependency is required.
 
 ```{eval-rst}
 .. automodule:: mcdakit.ai
-   :members: propose_criteria, propose_weights, critique_weights, AiProposal, WeightProposal, AiError
+   :members: propose_criteria, propose_weights, propose_comparisons, simulate_panel, narrate, critique_weights, AiProposal, WeightProposal, ComparisonProposal, PanelProposal, AiError
 ```
 
 ## Explaining a result

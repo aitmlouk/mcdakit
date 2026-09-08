@@ -53,11 +53,17 @@ import numpy as np
 from .types import Criterion, McdaError
 
 __all__ = [
+    "AiError",
     "AiProposal",
+    "ComparisonProposal",
+    "PanelProposal",
     "WeightProposal",
     "critique_weights",
+    "narrate",
+    "propose_comparisons",
     "propose_criteria",
     "propose_weights",
+    "simulate_panel",
 ]
 
 #: A provider is any callable taking a prompt and returning the model's reply.
@@ -399,4 +405,397 @@ def critique_weights(
         "weights": vector,
         "stability": report,
         "disagrees_with": disagrees,
+    }
+
+
+# --------------------------------------------------------------------------
+# Pairwise comparison, checked for self-contradiction
+# --------------------------------------------------------------------------
+
+COMPARISON_PROMPT = """You are helping set up a multi-criteria decision analysis.
+
+Problem: {problem}
+
+Criteria, numbered from 0: {names}
+
+For each pair, say how much more important the first is than the second, on
+Saaty's scale: 9 extremely more, 7 very strongly, 5 strongly, 3 moderately,
+1 equally, and 1/3, 1/5, 1/7, 1/9 for the reverse.
+
+Reply with JSON only: a list of objects with keys "i", "j" and "ratio",
+covering every pair with i < j. Reply with the JSON array and nothing else."""
+
+
+@dataclass(frozen=True)
+class ComparisonProposal:
+    """Pairwise judgements a model made, and whether they cohere.
+
+    The value of routing an LLM through pairwise comparison rather than asking
+    for weights directly is that the answer is checkable. Saying price matters
+    three times quality, quality three times delivery, and price twice
+    delivery is a contradiction, and Saaty's consistency ratio detects it
+    without anyone knowing what the right weights were.
+
+    Attributes
+    ----------
+    consistency_ratio:
+        Saaty's CI/RI. At or below :data:`~mcdakit.CONSISTENCY_LIMIT` (0.10)
+        the judgements hold together.
+    consistent:
+        Whether that threshold was met. Reported, never enforced: an
+        inconsistent panel of judgements is a reason to ask again, and the
+        caller decides.
+    """
+
+    judgements: dict
+    weights: np.ndarray
+    criteria: tuple
+    consistency_ratio: float
+    consistent: bool
+    agreement: float | None = None
+    accepted: bool = False
+
+    def __str__(self) -> str:
+        lines = [
+            f"{len(self.judgements)} pairwise judgements, "
+            f"consistency ratio {self.consistency_ratio:.3f} "
+            f"({'consistent' if self.consistent else 'INCONSISTENT'})"
+        ]
+        for criterion, weight in zip(self.criteria, self.weights):
+            lines.append(f"  {criterion.name:<14}{weight:.4f}")
+        if not self.consistent:
+            lines.append(
+                "  ! the judgements contradict each other; ask again or "
+                "revise them by hand"
+            )
+        lines.append("  not applied — construct a Decision to accept")
+        return "\n".join(lines)
+
+
+def propose_comparisons(
+    problem: str,
+    criteria: Sequence[Criterion],
+    ask: Ask,
+    samples: int = 1,
+) -> ComparisonProposal:
+    """Ask a model to compare criteria pairwise, and check it contradicts
+    itself no more than Saaty allows.
+
+    Asking for pairwise judgements rather than for weights directly is the
+    point: *is price more important than quality, and by how much* is a
+    question with a checkable answer, whereas a weight vector is not. The
+    model's replies are assembled into a reciprocal matrix and put through
+    :func:`~mcdakit.ahp_weights`, so a model that answers inconsistently is
+    detected by arithmetic rather than by inspection.
+    """
+    if samples < 1:
+        raise McdaError("samples must be at least 1.")
+    criteria = tuple(criteria)
+    if len(criteria) < 2:
+        raise McdaError(
+            "Pairwise comparison needs at least two criteria; with one there "
+            "is nothing to compare."
+        )
+
+    names = ", ".join(f"{i}: {c.name}" for i, c in enumerate(criteria))
+    prompt = COMPARISON_PROMPT.format(problem=problem, names=names)
+    replies = [ask(prompt) for _ in range(samples)]
+
+    parsed = [_parse_comparisons(_extract_json(r), len(criteria)) for r in replies]
+    judgements = parsed[0]
+
+    from .ahp import ahp_weights
+
+    outcome = ahp_weights(judgements, names=[c.name for c in criteria])
+
+    agreement = None
+    if samples > 1:
+        # How consistently the model judges the same pairs, measured as the
+        # mean absolute difference in log-ratio — the natural scale for a
+        # multiplicative comparison, where 3 and 1/3 are equally far from 1.
+        gaps = []
+        for i, first in enumerate(parsed):
+            for second in parsed[i + 1 :]:
+                shared = set(first) & set(second)
+                if shared:
+                    gaps.append(
+                        float(
+                            np.mean(
+                                [
+                                    abs(np.log(first[k]) - np.log(second[k]))
+                                    for k in shared
+                                ]
+                            )
+                        )
+                    )
+        if gaps:
+            # Map a mean log gap to [0, 1]: identical judgements score 1.
+            agreement = float(np.exp(-np.mean(gaps)))
+
+    return ComparisonProposal(
+        judgements=judgements,
+        weights=outcome["weights"],
+        criteria=criteria,
+        consistency_ratio=float(outcome["consistency_ratio"]),
+        consistent=bool(outcome["consistent"]),
+        agreement=agreement,
+    )
+
+
+def _parse_comparisons(payload, n_criteria: int) -> dict:
+    """Turn a model's pair list into ``{(i, j): ratio}``."""
+    if not isinstance(payload, list):
+        raise AiError(
+            f"Expected a JSON list of comparisons, got {type(payload).__name__}."
+        )
+    judgements = {}
+    for entry in payload:
+        try:
+            i, j = int(entry["i"]), int(entry["j"])
+            ratio = float(entry["ratio"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise AiError(
+                f"A comparison was malformed; each needs i, j and ratio: {exc}"
+            ) from exc
+        if not (0 <= i < n_criteria and 0 <= j < n_criteria):
+            raise AiError(
+                f"Comparison ({i}, {j}) is out of range for {n_criteria} criteria."
+            )
+        if i == j:
+            raise AiError("A criterion cannot be compared with itself.")
+        if ratio <= 0 or not np.isfinite(ratio):
+            raise AiError(
+                f"Comparison ({i}, {j}) needs a positive finite ratio, got {ratio}."
+            )
+        judgements[(i, j)] = ratio
+    if not judgements:
+        raise AiError("The model returned no comparisons.")
+    return judgements
+
+
+# --------------------------------------------------------------------------
+# Simulated expert panel
+# --------------------------------------------------------------------------
+
+PANEL_PROMPT = """You are participating in a decision panel as: {persona}
+
+Problem: {problem}
+
+Score each option on each criterion, from the perspective of your role.
+Options, in order: {options}
+Criteria, in order: {names}
+
+Reply with JSON only: a list of rows, one per option, each a list of numbers
+one per criterion, in the orders given. Reply with the JSON array and nothing
+else."""
+
+
+@dataclass(frozen=True)
+class PanelProposal:
+    """A panel of simulated experts, and how far apart they were.
+
+    Human expert panels are expensive to convene, hard to assemble across
+    disciplines, and — because the same panel cannot be run twice — not
+    reproducible. A simulated panel is reproducible by construction and costs
+    a prompt, at the price of being a model's impression of an expert rather
+    than an expert.
+
+    That trade is only acceptable if the output is scrutinised, so the
+    participants returned here are ordinary
+    :class:`~mcdakit.group.Participant` objects and go through the same
+    :func:`~mcdakit.group.group_rank` and
+    :func:`~mcdakit.group.disagreement` machinery as a real panel. A
+    simulated panel that agrees suspiciously closely is itself a finding, and
+    ``spread`` is what shows it.
+
+    Attributes
+    ----------
+    participants:
+        One per persona, ready for :func:`~mcdakit.group.group_rank`.
+    spread:
+        Mean standard deviation of the scores across personas. Near zero means
+        the personas did not actually differ, and the panel added nothing over
+        asking once.
+    """
+
+    participants: tuple
+    personas: tuple
+    criteria: tuple
+    labels: tuple
+    spread: float
+    rejected: tuple = ()
+    accepted: bool = False
+
+    def __str__(self) -> str:
+        lines = [f"{len(self.participants)} simulated participants:"]
+        for participant in self.participants:
+            lines.append(f"  {participant.name}")
+        for persona, why in self.rejected:
+            lines.append(f"  ! discarded {persona!r}: {why}")
+        lines.append(f"  spread across personas: {self.spread:.3f}")
+        if self.spread < 1e-9:
+            lines.append(
+                "  ! the personas produced identical scores; the panel adds "
+                "nothing over a single opinion"
+            )
+        lines.append("  not applied — pass to group_rank() to combine")
+        return "\n".join(lines)
+
+
+def simulate_panel(
+    problem: str,
+    criteria: Sequence[Criterion],
+    personas: Sequence[str],
+    labels: Sequence[str],
+    ask: Ask,
+):
+    """Ask a model to score the problem once per expert persona.
+
+    Each persona is prompted separately and scores every option on every
+    criterion, producing a :class:`~mcdakit.group.Participant`. The result is
+    an ordinary panel: combine it with
+    :func:`~mcdakit.group.group_rank`, which reports both aggregations and
+    where the personas disagreed.
+
+    A persona whose reply is malformed or the wrong shape is discarded with
+    its reason rather than silently dropped, since a panel of three that
+    became a panel of two is a different panel.
+
+    Parameters
+    ----------
+    personas:
+        Short role descriptions, for example ``"cost analyst"`` or
+        ``"sustainability officer"``. Distinct roles are the point; identical
+        ones produce identical scores and a spread of zero, which the result
+        flags.
+    """
+    from .group import Participant
+
+    criteria = tuple(criteria)
+    labels = tuple(labels)
+    personas = tuple(personas)
+
+    if len(personas) < 2:
+        raise McdaError(
+            "A panel needs at least two personas; with one there is nothing "
+            "to compare. Use propose_weights() instead."
+        )
+
+    names = ", ".join(c.name for c in criteria)
+    options = ", ".join(labels)
+
+    participants, rejected = [], []
+    for persona in personas:
+        prompt = PANEL_PROMPT.format(
+            persona=persona, problem=problem, options=options, names=names
+        )
+        try:
+            payload = _extract_json(ask(prompt))
+            matrix = np.asarray(payload, dtype=float)
+            if matrix.shape != (len(labels), len(criteria)):
+                raise AiError(
+                    f"expected a {len(labels)}x{len(criteria)} matrix, got "
+                    f"{matrix.shape}"
+                )
+            if not np.all(np.isfinite(matrix)):
+                raise AiError("the scores contain NaN or infinity")
+            participants.append(Participant(persona, matrix))
+        except (AiError, McdaError, TypeError, ValueError) as exc:
+            rejected.append((persona, str(exc)))
+
+    if len(participants) < 2:
+        raise AiError(
+            "Fewer than two personas produced a usable panel. Rejected: "
+            + "; ".join(f"{p}: {w}" for p, w in rejected)
+        )
+
+    stacked = np.stack([p.matrix for p in participants])
+    spread = float(stacked.std(axis=0).mean())
+
+    return PanelProposal(
+        participants=tuple(participants),
+        personas=personas,
+        criteria=criteria,
+        labels=labels,
+        spread=spread,
+        rejected=tuple(rejected),
+    )
+
+
+# --------------------------------------------------------------------------
+# Narration
+# --------------------------------------------------------------------------
+
+NARRATE_PROMPT = """Write a short paragraph for a decision report, using only
+the figures below. Do not introduce numbers that do not appear here, and do
+not round them differently.
+
+{facts}
+
+Reply with the paragraph and nothing else."""
+
+
+def narrate(result, ask: Ask, sensitivity_report: dict | None = None) -> dict:
+    """Turn a result into a paragraph, and check the model kept to the figures.
+
+    The model is given the computed facts and asked to write them up. It is
+    not asked to analyse anything: everything in the prompt has already been
+    calculated, so the only failure available to it is misstating a number —
+    and that is checkable.
+
+    Every numeric literal in the reply is therefore compared against the
+    figures supplied. Any that does not appear is listed in
+    ``unsupported_numbers``, which is the thing worth reading before pasting
+    the text into a report.
+
+    Returns
+    -------
+    dict
+        ``text`` the paragraph, ``facts`` what the model was given,
+        ``unsupported_numbers`` any figure in the text that was not among
+        them, and ``faithful`` whether that list is empty.
+    """
+    from .types import Result
+
+    if not isinstance(result, Result):
+        raise McdaError(
+            f"narrate() takes a Result from rank(), got {type(result).__name__}."
+        )
+
+    lines = [
+        f"Method: {result.method}",
+        f"Recommended: {result.winner}",
+        "Ranking:",
+    ]
+    supported = set()
+    for label, score in result.ranking:
+        lines.append(f"  {label}: {score:.4f}")
+        supported.add(f"{score:.4f}")
+
+    if sensitivity_report:
+        level = sensitivity_report.get("level")
+        overall = sensitivity_report.get("overall")
+        lines.append(f"Stability: {level}")
+        if overall is not None:
+            percent = f"{overall * 100:.1f}"
+            lines.append(
+                f"  the winner changes if {sensitivity_report.get('weakest')} "
+                f"moves by {percent}%"
+            )
+            supported.add(percent)
+
+    facts = "\n".join(lines)
+    text = ask(NARRATE_PROMPT.format(facts=facts))
+
+    # Any number in the reply that was not given to the model is one it
+    # invented, which is the only way this call can go wrong.
+    written = set(re.findall(r"\d+(?:\.\d+)?", text))
+    given = set(re.findall(r"\d+(?:\.\d+)?", facts))
+    unsupported = tuple(sorted(written - given))
+
+    return {
+        "text": text.strip(),
+        "facts": facts,
+        "unsupported_numbers": unsupported,
+        "faithful": not unsupported,
     }

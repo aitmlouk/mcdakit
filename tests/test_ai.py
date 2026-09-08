@@ -364,3 +364,372 @@ class TestOptIn:
             "re",
             "typing",
         }, f"unexpected imports: {top}"
+
+
+CONSISTENT_PAIRS = (
+    '[{"i":0,"j":1,"ratio":3},{"i":0,"j":2,"ratio":9},{"i":1,"j":2,"ratio":3}]'
+)
+
+
+class TestProposeComparisons:
+    """Pairwise judgements are worth asking for because they are checkable.
+
+    A weight vector cannot contradict itself; a set of pairwise ratios can,
+    and Saaty's consistency ratio detects it without anyone knowing what the
+    right weights were.
+    """
+
+    def test_consistent_judgements_give_the_expected_weights(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        proposal = propose_comparisons("x", criteria, ask=replying(CONSISTENT_PAIRS))
+        assert proposal.consistency_ratio == pytest.approx(0.0, abs=1e-9)
+        assert proposal.consistent
+        # 3:1 and 9:1 imply priorities in 9:3:1.
+        assert proposal.weights == pytest.approx([9 / 13, 3 / 13, 1 / 13], abs=1e-4)
+
+    def test_a_self_contradicting_model_is_caught(self, criteria):
+        """A over B, B over C, but C over A cannot all hold, and the model
+        gets no say in whether that is noticed."""
+        from mcdakit.ai import propose_comparisons
+
+        circular = (
+            '[{"i":0,"j":1,"ratio":5},{"i":1,"j":2,"ratio":5},'
+            '{"i":0,"j":2,"ratio":0.2}]'
+        )
+        proposal = propose_comparisons("x", criteria, ask=replying(circular))
+        assert proposal.consistency_ratio > 0.10
+        assert not proposal.consistent
+
+    def test_inconsistency_is_reported_not_raised(self, criteria):
+        """The analyst decides whether to proceed, as elsewhere in AHP."""
+        from mcdakit.ai import propose_comparisons
+
+        circular = (
+            '[{"i":0,"j":1,"ratio":9},{"i":1,"j":2,"ratio":9},'
+            '{"i":0,"j":2,"ratio":0.111}]'
+        )
+        proposal = propose_comparisons("x", criteria, ask=replying(circular))
+        assert proposal.weights.sum() == pytest.approx(1.0)
+
+    def test_the_printed_output_flags_a_contradiction(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        circular = (
+            '[{"i":0,"j":1,"ratio":5},{"i":1,"j":2,"ratio":5},'
+            '{"i":0,"j":2,"ratio":0.2}]'
+        )
+        text = str(propose_comparisons("x", criteria, ask=replying(circular)))
+        assert "INCONSISTENT" in text
+        assert "contradict" in text
+
+    def test_a_malformed_comparison_is_refused(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(AiError, match="malformed"):
+            propose_comparisons("x", criteria, ask=replying('[{"i":0}]'))
+
+    def test_an_out_of_range_pair_is_refused(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(AiError, match="out of range"):
+            propose_comparisons(
+                "x", criteria, ask=replying('[{"i":0,"j":9,"ratio":3}]')
+            )
+
+    def test_comparing_a_criterion_with_itself_is_refused(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(AiError, match="with itself"):
+            propose_comparisons(
+                "x", criteria, ask=replying('[{"i":1,"j":1,"ratio":3}]')
+            )
+
+    def test_a_non_positive_ratio_is_refused(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(AiError, match="positive finite ratio"):
+            propose_comparisons(
+                "x", criteria, ask=replying('[{"i":0,"j":1,"ratio":0}]')
+            )
+
+    def test_an_empty_reply_is_refused(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(AiError, match="no comparisons"):
+            propose_comparisons("x", criteria, ask=replying("[]"))
+
+    def test_a_json_object_where_a_list_was_required_is_refused(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(AiError, match="Expected a JSON list"):
+            propose_comparisons("x", criteria, ask=replying('{"i":0}'))
+
+    def test_a_single_criterion_is_refused(self):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(McdaError, match="at least two criteria"):
+            propose_comparisons(
+                "x", [Criterion("Only", 1.0)], ask=replying(CONSISTENT_PAIRS)
+            )
+
+    def test_zero_samples_is_refused(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        with pytest.raises(McdaError, match="at least 1"):
+            propose_comparisons(
+                "x", criteria, ask=replying(CONSISTENT_PAIRS), samples=0
+            )
+
+    def test_repeated_asking_measures_self_consistency(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        other = (
+            '[{"i":0,"j":1,"ratio":1},{"i":0,"j":2,"ratio":1},{"i":1,"j":2,"ratio":1}]'
+        )
+        same = propose_comparisons(
+            "x", criteria, ask=replying(CONSISTENT_PAIRS), samples=2
+        )
+        differing = propose_comparisons(
+            "x", criteria, ask=replying(CONSISTENT_PAIRS, other), samples=2
+        )
+        assert same.agreement == pytest.approx(1.0)
+        assert differing.agreement < same.agreement
+
+
+PANEL_VIEWS = {
+    "cost analyst": "[[2.75,7,8],[2.90,8.5,8],[3.40,9,7]]",
+    "quality lead": "[[2.75,9,8],[2.90,6.0,8],[3.40,9,7]]",
+    "ops manager": "[[2.75,7,9],[2.90,8.5,6],[3.40,9,9]]",
+}
+
+
+def panel_model(prompt):
+    for persona, reply in PANEL_VIEWS.items():
+        if persona in prompt:
+            return reply
+    return "no json here"
+
+
+class TestSimulatePanel:
+    """A simulated panel is reproducible where a human one is not, at the
+    price of being a model's impression of an expert. That trade is only
+    acceptable if the output goes through the same scrutiny."""
+
+    LABELS = ["A", "B", "C"]
+
+    def test_each_persona_becomes_a_participant(self, criteria):
+        from mcdakit.ai import simulate_panel
+
+        panel = simulate_panel(
+            "x", criteria, list(PANEL_VIEWS), self.LABELS, ask=panel_model
+        )
+        assert len(panel.participants) == 3
+        assert {p.name for p in panel.participants} == set(PANEL_VIEWS)
+
+    def test_the_panel_feeds_the_existing_group_machinery(self, criteria):
+        """The point of returning Participant objects: a simulated panel is
+        scrutinised exactly as a real one is."""
+        from mcdakit.ai import simulate_panel
+        from mcdakit.group import group_rank
+
+        panel = simulate_panel(
+            "x", criteria, list(PANEL_VIEWS), self.LABELS, ask=panel_model
+        )
+        out = group_rank(panel.participants, criteria, labels=self.LABELS)
+        assert out["result"].winner in self.LABELS
+        assert "most_contested_option" in out["disagreement"]
+
+    def test_spread_measures_whether_the_personas_actually_differed(self, criteria):
+        """A panel whose members agree exactly added nothing over asking once,
+        and saying so is more useful than reporting a false consensus."""
+        from mcdakit.ai import simulate_panel
+
+        varied = simulate_panel(
+            "x", criteria, list(PANEL_VIEWS), self.LABELS, ask=panel_model
+        )
+        identical = simulate_panel(
+            "x",
+            criteria,
+            ["one", "two"],
+            self.LABELS,
+            ask=replying("[[1,2,3],[4,5,6],[7,8,9]]"),
+        )
+        assert varied.spread > 0
+        assert identical.spread == pytest.approx(0.0)
+        assert "adds nothing" in str(identical)
+
+    def test_a_malformed_persona_is_discarded_with_its_reason(self, criteria):
+        from mcdakit.ai import simulate_panel
+
+        personas = [*PANEL_VIEWS, "broken"]
+        panel = simulate_panel("x", criteria, personas, self.LABELS, ask=panel_model)
+        assert len(panel.participants) == 3
+        assert panel.rejected and panel.rejected[0][0] == "broken"
+        assert "discarded 'broken'" in str(panel)
+
+    def test_a_wrong_shaped_reply_is_discarded(self, criteria):
+        from mcdakit.ai import simulate_panel
+
+        def wrong(prompt):
+            return "[[1,2,3]]" if "narrow" in prompt else PANEL_VIEWS["cost analyst"]
+
+        panel = simulate_panel(
+            "x",
+            criteria,
+            ["cost analyst", "quality lead", "narrow"],
+            self.LABELS,
+            ask=wrong,
+        )
+        assert any("3x3" in why or "matrix" in why for _p, why in panel.rejected)
+
+    def test_a_reply_containing_nan_is_discarded(self, criteria):
+        from mcdakit.ai import simulate_panel
+
+        def nan_reply(prompt):
+            if "bad" in prompt:
+                return '[[1,2,3],[4,"NaN",6],[7,8,9]]'
+            return PANEL_VIEWS["cost analyst"]
+
+        panel = simulate_panel(
+            "x",
+            criteria,
+            ["cost analyst", "quality lead", "bad"],
+            self.LABELS,
+            ask=nan_reply,
+        )
+        assert any("NaN" in why or "infinity" in why for _p, why in panel.rejected)
+
+    def test_fewer_than_two_usable_personas_is_refused(self, criteria):
+        from mcdakit.ai import simulate_panel
+
+        with pytest.raises(AiError, match="Fewer than two personas"):
+            simulate_panel(
+                "x", criteria, ["a", "b"], self.LABELS, ask=replying("nonsense")
+            )
+
+    def test_a_panel_of_one_is_refused(self, criteria):
+        from mcdakit.ai import simulate_panel
+
+        with pytest.raises(McdaError, match="at least two personas"):
+            simulate_panel("x", criteria, ["only"], self.LABELS, ask=panel_model)
+
+    def test_nothing_is_applied_automatically(self, criteria):
+        from mcdakit.ai import simulate_panel
+
+        panel = simulate_panel(
+            "x", criteria, list(PANEL_VIEWS), self.LABELS, ask=panel_model
+        )
+        assert panel.accepted is False
+        assert "not applied" in str(panel)
+
+
+class TestNarrate:
+    """The model is given computed facts and asked to write them up, so the
+    only failure available to it is misstating a number — which is checkable.
+    """
+
+    def _result(self, criteria):
+        from mcdakit import Decision, rank
+
+        return rank(
+            Decision(
+                [[2.75, 7, 8], [2.90, 8.5, 8], [3.40, 9, 7]], criteria, ["A", "B", "C"]
+            ),
+            method="weighted_scoring",
+        )
+
+    def test_a_faithful_paragraph_passes(self, criteria):
+        from mcdakit.ai import narrate
+
+        result = self._result(criteria)
+        top = f"{result.ranking[0][1]:.4f}"
+        out = narrate(
+            result, ask=replying(f"{result.winner} is recommended, scoring {top}.")
+        )
+        assert out["faithful"]
+        assert out["unsupported_numbers"] == ()
+
+    def test_an_invented_figure_is_caught(self, criteria):
+        """The failure this check exists for: a confident number the model
+        made up, pasted into a decision report."""
+        from mcdakit.ai import narrate
+
+        out = narrate(
+            self._result(criteria),
+            ask=replying("A is recommended with 97.3% confidence."),
+        )
+        assert not out["faithful"]
+        assert "97.3" in out["unsupported_numbers"]
+
+    def test_the_sensitivity_figures_are_offered_and_accepted(self, criteria):
+        from mcdakit import sensitivity
+        from mcdakit.ai import narrate
+
+        result = self._result(criteria)
+        report = sensitivity(result)
+        out = narrate(result, ask=replying("Stable enough."), sensitivity_report=report)
+        assert report["level"] in out["facts"]
+
+    def test_the_facts_given_to_the_model_are_returned(self, criteria):
+        from mcdakit.ai import narrate
+
+        out = narrate(self._result(criteria), ask=replying("Anything."))
+        assert "Method: weighted_scoring" in out["facts"]
+        assert "Recommended:" in out["facts"]
+
+    def test_it_takes_a_result_not_a_decision(self, criteria):
+        from mcdakit import Decision
+        from mcdakit.ai import narrate
+
+        decision = Decision([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], criteria, ["A", "B"])
+        with pytest.raises(McdaError, match="takes a Result"):
+            narrate(decision, ask=replying("x"))
+
+
+class TestUncoveredPaths:
+    """Cases the happy path does not reach, each a real possibility."""
+
+    def test_a_consistent_proposal_prints_no_contradiction_warning(self, criteria):
+        from mcdakit.ai import propose_comparisons
+
+        text = str(propose_comparisons("x", criteria, ask=replying(CONSISTENT_PAIRS)))
+        assert "contradict" not in text
+        assert "INCONSISTENT" not in text
+
+    def test_replies_sharing_no_pair_yield_no_agreement_score(self, criteria):
+        """Two replies that compare different pairs cannot be compared, and
+        inventing a similarity for them would be worse than reporting none."""
+        from mcdakit.ai import propose_comparisons
+
+        first = '[{"i":0,"j":1,"ratio":3}]'
+        second = '[{"i":1,"j":2,"ratio":3}]'
+        proposal = propose_comparisons(
+            "x", criteria, ask=replying(first, second), samples=2
+        )
+        assert proposal.agreement is None
+
+    def test_an_immovable_result_narrates_without_a_tolerance(self, criteria):
+        """sensitivity() reports overall=None when no weight change unseats
+        the winner; the narration must omit the figure rather than print
+        None."""
+        from mcdakit import Criterion, Decision, rank, sensitivity
+        from mcdakit.ai import narrate
+
+        dominant = [
+            Criterion("A", 1.0, "benefit"),
+            Criterion("B", 1.0, "benefit"),
+        ]
+        result = rank(
+            Decision([[9.0, 9.0], [1.0, 1.0]], dominant, ["Strong", "Weak"]),
+            method="weighted_scoring",
+        )
+        report = sensitivity(result)
+        assert report["overall"] is None, "fixture must be immovable"
+
+        out = narrate(
+            result, ask=replying("Strong is recommended."), sensitivity_report=report
+        )
+        assert "Stability: immovable" in out["facts"]
+        assert "moves by" not in out["facts"]
+        assert out["faithful"]
