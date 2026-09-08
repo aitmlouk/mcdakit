@@ -136,3 +136,65 @@ class TestTopsis:
             extended, _criteria(["benefit"] * 4, bounds=False), method="topsis"
         ).scores
         assert int(np.argmax(theirs)) == int(np.argmax(ours)) == 4
+
+
+class TestRankingsAgreeAtScale:
+    """Agreement with the reference implementation, on problems large enough
+    that a numerical discrepancy would have room to appear.
+
+    The worked example above pins particular values; this pins the property
+    that the two implementations order alternatives the same way as the
+    problem grows. A divergence here would indicate a numerical defect in one
+    of them, and is worth failing the build for.
+    """
+
+    @pytest.mark.parametrize(
+        "shape", [(4, 4), (20, 6), (100, 10)], ids=lambda s: f"{s[0]}x{s[1]}"
+    )
+    def test_topsis_matches_under_the_same_normalisation(self, shape):
+        from pymcdm.normalizations import vector_normalization
+
+        from mcdakit import Criterion, Decision, rank
+
+        n_options, n_criteria = shape
+        rng = np.random.default_rng(1)
+        matrix = rng.uniform(1, 10, size=(n_options, n_criteria))
+        weights = rng.dirichlet(np.ones(n_criteria))
+
+        criteria = [
+            Criterion(f"C{j}", float(weights[j]), "benefit") for j in range(n_criteria)
+        ]
+        ours = rank(Decision(matrix, criteria), method="topsis").scores
+        theirs = TOPSIS(normalization_function=vector_normalization)(
+            matrix, weights, np.ones(n_criteria, dtype=int)
+        )
+
+        assert np.allclose(ours, theirs, atol=1e-10)
+        assert list(np.argsort(-ours)) == list(np.argsort(-theirs))
+
+    @pytest.mark.parametrize("seed", [0, 1, 2])
+    def test_spotis_matches_on_mixed_direction_problems(self, seed):
+        """Direction handling is where the two libraries could plausibly
+        differ, since they encode it differently (strings versus +1/-1)."""
+        from pymcdm.methods import SPOTIS
+
+        from mcdakit import Criterion, Decision, rank
+
+        rng = np.random.default_rng(seed)
+        matrix = rng.uniform(0, 10, size=(8, 5))
+        weights = rng.dirichlet(np.ones(5))
+        directions = ["cost" if j % 2 else "benefit" for j in range(5)]
+        bounds = np.array([[0.0, 10.0]] * 5)
+
+        criteria = [
+            Criterion(f"C{j}", float(weights[j]), directions[j], bounds=(0.0, 10.0))
+            for j in range(5)
+        ]
+        ours = rank(Decision(matrix, criteria), method="spotis").scores
+        types = np.array(
+            [PYMCDM_COST if d == "cost" else PYMCDM_BENEFIT for d in directions]
+        )
+        theirs = SPOTIS(bounds)(matrix, weights, types)
+
+        # We negate so that larger is better; pymcdm reports the distance.
+        assert np.allclose(-ours, theirs, atol=1e-12)

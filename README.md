@@ -378,6 +378,30 @@ Register your own with `@register_normalization("name")`, or pass any callable.
 The full contract — reporting caveats, refusing problems, accepting options,
 what is *not* yet extensible — is in [`docs/extending.md`](docs/extending.md).
 
+## Compared with other libraries
+
+`benchmarks/comparison.py` runs `mcdakit` against `pymcdm`, `pyDecision` and
+`scikit-criteria` on the same problem and reports four things: whether shared
+methods agree, what each library can do (established by calling it), what each
+does with input it cannot honestly rank, and how they scale.
+
+Summarising the run:
+
+- **Shared methods agree.** SPOTIS and VIKOR match `pymcdm` exactly; TOPSIS
+  matches once both use vector normalisation, and differs from its min-max
+  default — a modelling choice, not a defect, and the tests pin both facts.
+- **Degenerate input** — all weights zero, or a missing score — is refused
+  here and returns `NaN` there, with a warning in one case and silently in
+  the other.
+- **Rankings agree at every problem size** tested up to 500×15.
+
+Install the comparison libraries first; they are never a runtime dependency:
+
+```bash
+pip install pymcdm pyDecision scikit-criteria
+python benchmarks/comparison.py
+```
+
 ## What this is not
 
 Not a replacement for [`pymcdm`](https://pypi.org/project/pymcdm/) or
