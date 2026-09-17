@@ -149,8 +149,23 @@ the rest of the API:
 .. automodule:: mcdakit.methods.waspas
    :members: waspas, Waspas, wpm, Wpm
 
-.. automodule:: mcdakit.methods.reference_point
-   :members: aras, Aras, cocoso, Cocoso, codas, Codas, edas, Edas, mabac, Mabac, marcos, Marcos
+.. automodule:: mcdakit.methods.aras
+   :members: aras, Aras
+
+.. automodule:: mcdakit.methods.cocoso
+   :members: cocoso, Cocoso
+
+.. automodule:: mcdakit.methods.codas
+   :members: codas, Codas
+
+.. automodule:: mcdakit.methods.edas
+   :members: edas, Edas
+
+.. automodule:: mcdakit.methods.mabac
+   :members: mabac, Mabac
+
+.. automodule:: mcdakit.methods.marcos
+   :members: marcos, Marcos
 ```
 
 ## Normalisation

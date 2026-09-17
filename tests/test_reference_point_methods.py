@@ -14,14 +14,12 @@ import numpy as np
 import pytest
 
 from mcdakit import METHODS, Criterion, Decision, McdaError, rank
-from mcdakit.methods.reference_point import (
-    aras,
-    cocoso,
-    codas,
-    edas,
-    mabac,
-    marcos,
-)
+from mcdakit.methods.aras import aras
+from mcdakit.methods.cocoso import cocoso
+from mcdakit.methods.codas import codas
+from mcdakit.methods.edas import edas
+from mcdakit.methods.mabac import mabac
+from mcdakit.methods.marcos import marcos
 from mcdakit.testing import conformance_report
 
 MATRIX = np.array(

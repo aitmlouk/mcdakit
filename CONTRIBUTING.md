@@ -9,6 +9,37 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,compare,docs]"
 ```
 
+## Where things live
+
+```
+src/mcdakit/
+  types.py          Criterion, Decision, Result — validated at construction
+  orientation.py    Cost criteria mirrored to benefit, once, centrally
+  normalization.py  Normalisation schemes and their registry
+  weighting.py      Objective weight derivation (entropy, CRITIC, ...)
+  ranking.py        rank(), compare_methods(), agreement, reversal_check
+  sensitivity.py    How far a weight can move before the winner changes
+  explain.py        Why an alternative won, and by what margin
+  ahp.py            Pairwise comparison: weights, and full AHP ranking
+  group.py          Several stakeholders, and where they disagree
+  ai.py             Optional LLM assistance; imported explicitly, never
+                    re-exported from the package namespace
+  testing.py        Conformance suite that method authors run
+  methods/          One module per method — see below
+```
+
+**One method per module**, named for the method: `topsis.py` holds `topsis`
+and `Topsis`. Two exceptions, each because the methods share an
+implementation rather than merely a theme — `scoring.py` (simple scoring,
+weighted scoring and SAW differ only in weighting and normalisation) and
+`waspas.py` (WPM *is* WASPAS at lambda zero and calls it, so splitting them
+would let the two drift apart). Genuinely shared code goes in
+`methods/_common.py` or `methods/base.py`, never in a module that happens to
+hold a related method.
+
+Tests mirror this: `tests/test_topsis.py` for `topsis.py`. `benchmarks/`,
+`examples/` and `docs/` are not shipped in the wheel.
+
 ## The checks CI runs
 
 ```bash
