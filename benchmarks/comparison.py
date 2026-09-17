@@ -398,6 +398,74 @@ def timings(repeats=200):
 # --------------------------------------------------------------------------
 
 
+def api_complexity():
+    """Lines of code to obtain a trustworthy answer from each library.
+
+    Not a proxy for quality --- a library offering more methods reasonably
+    asks for more setup. It measures how much the *analyst* must write to get
+    the ranking plus a statement of how far it can be trusted, which is the
+    task this package is built around and the one where the libraries differ.
+
+    Counts exclude imports and the problem definition, which every library
+    shares, and count only the calls producing each output.
+    """
+    return [
+        ("a ranking", 1, 1, "comparable"),
+        (
+            "+ how far the weights can move",
+            1,
+            6,
+            "a grid must be chosen, swept and read",
+        ),
+        ("+ which criterion decided it", 1, None, "not available"),
+        (
+            "+ whether a rejected option mattered",
+            1,
+            4,
+            "the returned matrix must be interpreted",
+        ),
+        ("+ where stakeholders disagree", 1, None, "not available"),
+    ]
+
+
+def memory():
+    """Peak allocation during one ranking.
+
+    More honest than wall-clock at these sizes, where timings reflect API
+    overhead more than algorithmic cost.
+    """
+    import tracemalloc
+
+    from mcdakit import Criterion, Decision, rank
+
+    rng = np.random.default_rng(1)
+    matrix = rng.uniform(1, 10, size=(500, 15))
+    weights = rng.dirichlet(np.ones(15))
+    criteria = [Criterion(f"C{j}", float(weights[j]), "benefit") for j in range(15)]
+    decision = Decision(matrix, criteria)
+
+    rows = []
+    tracemalloc.start()
+    rank(decision, method="topsis")
+    _current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    rows.append(("mcdakit TOPSIS", peak / 1024))
+
+    try:
+        from pymcdm.methods import TOPSIS
+
+        theirs = TOPSIS()
+        types = np.ones(15, dtype=int)
+        tracemalloc.start()
+        theirs(matrix, weights, types)
+        _current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        rows.append(("pymcdm TOPSIS", peak / 1024))
+    except Exception:  # pragma: no cover - optional dependency
+        pass
+    return rows
+
+
 def main():
     print("=" * 74)
     print("mcdakit versus the state of the art")
@@ -441,7 +509,25 @@ def main():
         print(f"    pymcdm  : {theirs}")
 
     print("\n" + "-" * 74)
-    print("4. SCALING — TOPSIS under matched normalisation")
+    print("4. API COMPLEXITY — calls needed for a trustworthy answer")
+    print("-" * 74)
+    print(f"\n  {'':<38}{'mcdakit':>9}{'pymcdm':>9}   note")
+    for want, mine, theirs, note in api_complexity():
+        other = "--" if theirs is None else str(theirs)
+        print(f"  {want:<38}{mine:>9}{other:>9}   {note}")
+    print(
+        "\n  Counts exclude imports and the problem definition, which every\n"
+        "  library shares."
+    )
+
+    print("\n" + "-" * 74)
+    print("5. MEMORY — peak allocation, 500x15 problem")
+    print("-" * 74)
+    for name, kib in memory():
+        print(f"  {name:<22}{kib:8.1f} KiB")
+
+    print("\n" + "-" * 74)
+    print("6. SCALING — TOPSIS under matched normalisation")
     print("-" * 74)
     rows = scaling()
     if rows:

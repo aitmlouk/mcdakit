@@ -443,6 +443,19 @@ Register your own with `@register_normalization("name")`, or pass any callable.
 The full contract — reporting caveats, refusing problems, accepting options,
 what is *not* yet extensible — is in [`docs/extending.md`](docs/extending.md).
 
+## Examples
+
+Two runnable scripts in [`examples/`](examples):
+
+```bash
+python examples/supplier_selection.py          # the full workflow
+python examples/same_problem_every_library.py  # the same problem, four libraries
+```
+
+The second is built around a deliberate anticlimax: all four libraries agree on
+the winner. The differences appear in what comes next — whether the answer
+holds, why it won, and what happens on input that cannot honestly be ranked.
+
 ## Compared with other libraries
 
 `benchmarks/comparison.py` runs `mcdakit` against `pymcdm`, `pyDecision` and

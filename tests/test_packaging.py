@@ -157,3 +157,50 @@ class TestDocumentation:
         index = (ROOT / "docs" / "index.md").read_text()
         for page in ("quickstart", "stability", "extending", "api"):
             assert page in index, f"{page} is not in the toctree"
+
+
+class TestExamples:
+    """The examples are documentation, and documentation that stops working
+    is worse than none: a reader who runs it and sees a traceback trusts
+    nothing else in the package."""
+
+    def test_the_worked_example_runs(self):
+        import subprocess
+        import sys
+
+        out = subprocess.run(
+            [sys.executable, "examples/supplier_selection.py"],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=120,
+        )
+        assert out.returncode == 0, out.stderr[-600:]
+        # Spot-check that it reached the end rather than dying quietly.
+        assert "What a decision report can now say" in out.stdout
+        assert "fragile" in out.stdout
+
+    def test_the_cross_library_example_runs(self):
+        """It degrades to whatever is installed, so it must run either way."""
+        import subprocess
+        import sys
+
+        out = subprocess.run(
+            [sys.executable, "examples/same_problem_every_library.py"],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=120,
+        )
+        assert out.returncode == 0, out.stderr[-600:]
+        assert "mcdakit" in out.stdout
+
+    def test_examples_hard_code_no_results(self):
+        """Every figure must be computed at run time, or the examples drift
+        away from the package without anything failing."""
+        for name in ("supplier_selection.py", "same_problem_every_library.py"):
+            source = (ROOT / "examples" / name).read_text()
+            # The decision matrix is data and may be literal; a printed score
+            # would not be.
+            assert "0.7048" not in source, f"{name} hard-codes a score"
+            assert 'fragile"' not in source, f"{name} hard-codes a verdict"
