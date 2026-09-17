@@ -14,6 +14,7 @@ numpy is the only runtime dependency.
 
 quickstart
 stability
+ai
 extending
 ```
 

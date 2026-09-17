@@ -747,3 +747,89 @@ class TestComparisonProposalPrintsReadably:
         for line in text.splitlines():
             if "0." in line and "ratio" not in line:
                 assert "  0." in line, f"name and number are not separated: {line!r}"
+
+
+class TestTheDocumentedWorkflow:
+    """The complete run in docs/ai.md, exercised so it cannot rot.
+
+    A guide whose example does not run is worse than no guide: the first
+    thing a reader does is paste it. An earlier draft of that page called a
+    `Criterion.with_weight()` that does not exist.
+    """
+
+    CRITERIA_REPLY = (
+        '[{"name":"Monthly cost","direction":"cost","weight":0.35},'
+        ' {"name":"Uptime SLA","direction":"benefit","weight":0.30},'
+        ' {"name":"Support quality","direction":"benefit","weight":0.20},'
+        ' {"name":"Migration effort","direction":"cost","weight":0.15}]'
+    )
+    WEIGHTS_REPLY = (
+        '{"Monthly cost":0.35,"Uptime SLA":0.30,'
+        '"Support quality":0.20,"Migration effort":0.15}'
+    )
+    NARRATE_REPLY = (
+        "The analysis ranked DigitalOcean first at 0.8049, ahead of "
+        "Azure at 0.2590 and AWS at 0.1951."
+    )
+    MATRIX = [[4200, 99.99, 8, 6], [3800, 99.95, 7, 4], [1500, 99.90, 5, 2]]
+    LABELS = ["AWS", "Azure", "DigitalOcean"]
+
+    def ask(self, prompt):
+        if "most important criteria" in prompt:
+            return self.CRITERIA_REPLY
+        if "relative importance weight" in prompt:
+            return self.WEIGHTS_REPLY
+        return self.NARRATE_REPLY
+
+    def test_the_whole_example_runs(self):
+        from dataclasses import replace
+
+        from mcdakit import Decision, rank, sensitivity
+        from mcdakit.ai import narrate
+
+        proposal = propose_criteria("choosing a cloud host", ask=self.ask, samples=2)
+        assert [c.name for c in proposal.criteria] == [
+            "Monthly cost",
+            "Uptime SLA",
+            "Support quality",
+            "Migration effort",
+        ]
+        assert proposal.agreement == 1.0
+        assert proposal.accepted is False
+
+        weights = propose_weights(
+            "choosing a cloud host",
+            proposal.criteria,
+            ask=self.ask,
+            matrix=self.MATRIX,
+        )
+        assert weights.weights == pytest.approx([0.35, 0.30, 0.20, 0.15])
+        assert weights.stability["level"] in {"fragile", "moderate", "robust"}
+
+        criteria = [
+            replace(c, weight=w) for c, w in zip(proposal.criteria, weights.weights)
+        ]
+        result = rank(Decision(self.MATRIX, criteria, self.LABELS), method="topsis")
+
+        written = narrate(result, ask=self.ask, sensitivity_report=sensitivity(result))
+        assert written["faithful"] is True, written["unsupported_numbers"]
+
+    def test_narrate_catches_a_number_the_model_invented(self):
+        """The guide claims this; it must be true."""
+        from mcdakit import Decision, rank
+        from mcdakit.ai import narrate
+
+        criteria = [
+            Criterion("Cost", 0.5, "cost"),
+            Criterion("Quality", 0.5, "benefit"),
+        ]
+        result = rank(
+            Decision([[10.0, 2.0], [20.0, 9.0]], criteria, ["A", "B"]),
+            method="topsis",
+        )
+        written = narrate(
+            result,
+            ask=lambda _: "A scored 0.9999 and clearly wins.",
+        )
+        assert written["faithful"] is False
+        assert "0.9999" in written["unsupported_numbers"]

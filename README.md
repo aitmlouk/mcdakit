@@ -548,6 +548,7 @@ carries seventeen and spends its surface area on stability instead.
 
 - [Quickstart](docs/quickstart.md) — describing a decision, ranking, reading a result
 - [Stability](docs/stability.md) — rank reversal, SPOTIS, sensitivity
+- [AI assistance](docs/ai.md) — connecting a model, and what gets checked
 - [Extending](docs/extending.md) — writing and shipping your own method
 - [Contributing](CONTRIBUTING.md) — house rules and the checks CI runs
 - [Design decisions](docs/adr/) — why the architecture is the way it is
