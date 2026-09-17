@@ -262,11 +262,20 @@ class TestTheyAreOrdinaryAskCallables:
 
 
 class TestNoSdkIsRequired:
+    #: Everything the adapters are permitted to import. An allowlist rather
+    #: than a check against `sys.stdlib_module_names`, which is Python 3.10+
+    #: while this package supports 3.9 — and which would also silently admit
+    #: any future stdlib addition. Adding a name here should be a decision.
+    PERMITTED = frozenset({"__future__", "collections", "json", "os", "time", "urllib"})
+
     def test_the_module_imports_only_the_standard_library(self):
-        """`pip install mcdakit` must be enough to reach every provider."""
+        """`pip install mcdakit` must be enough to reach every provider.
+
+        A vendor SDK appearing here would forfeit the one-dependency claim,
+        which the paper makes as a comparison against every rival library.
+        """
         import ast
         import pathlib
-        import sys
 
         source = pathlib.Path(anthropic.__code__.co_filename).read_text()
         imported = set()
@@ -276,8 +285,23 @@ class TestNoSdkIsRequired:
             elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
                 imported.add(node.module.split(".")[0])
 
-        outside = imported - set(sys.stdlib_module_names)
-        assert not outside, f"provider adapters must not import {outside}"
+        unexpected = imported - self.PERMITTED
+        assert not unexpected, (
+            f"provider adapters import {unexpected}; every one must be in the "
+            f"standard library, and adding to PERMITTED is a deliberate act"
+        )
+
+    def test_the_allowlist_is_really_the_standard_library(self):
+        """Guards the guard: PERMITTED must not accumulate a third-party name.
+
+        Skipped below 3.10, where the authoritative list does not exist.
+        """
+        import sys
+
+        names = getattr(sys, "stdlib_module_names", None)
+        if names is None:
+            pytest.skip("sys.stdlib_module_names needs Python 3.10+")
+        assert not (self.PERMITTED - set(names))
 
 
 class TestBackoffAndTransportFailures:
