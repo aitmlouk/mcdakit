@@ -8,6 +8,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **WPM** (`wpm`), the weighted product model, also called MEW. Where a
+  weighted sum lets a strength pay for a weakness, the product does not: one
+  near-zero value drags the whole score down however good the rest are, which
+  is the reason to choose it when a criterion is disqualifying rather than
+  merely undesirable. It is `waspas(lambda_=0.0)` and is implemented as that
+  call so the two cannot drift apart, but is exposed under its own name
+  because nobody searching for WPM would think to look inside a WASPAS
+  parameter. Agrees with `pymcdm` to 1e-12 once both use the same
+  normalisation — `pymcdm` defaults to sum normalisation where mcdakit uses
+  linear, which rescales the values without changing their order — and with
+  the published formula written out independently. This completes the set of
+  methods common to the surveyed libraries; seventeen are now provided.
 - **Full AHP** (`ahp_rank`), ranking alternatives from pairwise comparisons
   alone — no decision matrix. Alternatives are compared against each other
   under each criterion, so criteria nobody can measure numerically can still

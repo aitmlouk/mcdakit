@@ -173,6 +173,21 @@ def _pyrepo_waspas():
         return order(WASPAS()(MATRIX, WEIGHTS, TYPES))
 
 
+def _pymcdm_wpm():
+    """pymcdm's WPM defaults to sum normalisation where mcdakit uses linear.
+
+    Both are standard. Forced onto the same normalisation the two agree to
+    1e-12; left on their defaults they still agree on the order, which is
+    what this harness compares.
+    """
+    from pymcdm import normalizations as nz
+    from pymcdm.methods import WPM
+
+    return order(
+        WPM(normalization_function=nz.linear_normalization)(MATRIX, WEIGHTS, TYPES)
+    )
+
+
 def _pymcdm_named(name):
     """A pymcdm method invoked by name, for the many that share a signature."""
 
@@ -231,6 +246,7 @@ CHECKS = {
         "pymcdm": _pymcdm_waspas,
         "pyrepo-mcda": _pyrepo_waspas,
     },
+    "wpm": {"pymcdm (linear norm)": _pymcdm_wpm},
     "aras": {"pymcdm": _pymcdm_named("ARAS")},
     "cocoso": {"pymcdm": _pymcdm_named("COCOSO")},
     "codas": {"pymcdm": _pymcdm_named("CODAS")},

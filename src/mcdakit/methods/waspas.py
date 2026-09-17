@@ -70,6 +70,35 @@ def waspas(
     return (lambda_ * weighted_sum + (1.0 - lambda_) * weighted_product).astype(float)
 
 
+def wpm(
+    data: np.ndarray,
+    weights: np.ndarray,
+    directions: Sequence[str],
+) -> np.ndarray:
+    """The weighted product model, also called MEW.
+
+    .. math::
+
+        S_i = \\prod_j r_{ij}^{\\,w_j}
+
+    Bridgman, *Dimensional Analysis* (1922); Miller and Starr, *Executive
+    Decisions and Operations Research* (1969).
+
+    Where the weighted sum lets a strength pay for a weakness, the product
+    does not: one value near zero drags the whole score down however good the
+    rest are. That non-compensatory behaviour is the reason to choose it, and
+    it matters most when a criterion represents something disqualifying rather
+    than merely undesirable --- a supplier who cannot meet a safety threshold
+    is not redeemed by a low price.
+
+    This is :func:`waspas` at :math:`\\lambda = 0`, and is implemented as that
+    call so the two cannot drift apart. It is exposed separately because the
+    method has its own name and literature, and nobody searching for WPM would
+    think to look for it inside a WASPAS parameter.
+    """
+    return waspas(data, weights, directions, lambda_=0.0)
+
+
 class Waspas(Method):
     """WASPAS as a registered method.
 
@@ -85,3 +114,20 @@ class Waspas(Method):
 
     def score(self, ctx: ScoringContext) -> np.ndarray:
         return waspas(ctx.data, ctx.weights, ctx.directions, **ctx.opts)
+
+
+class Wpm(Method):
+    """The weighted product model as a registered method.
+
+    Takes no ``lambda_``: fixing it at zero is what distinguishes this from
+    :class:`Waspas`.
+    """
+
+    name = "wpm"
+    summary = "Weighted product model; a poor criterion cannot be paid for."
+    citation = "Bridgman (1922); Miller and Starr (1969)"
+    wants = Wants.RAW
+    requires_positive = True
+
+    def score(self, ctx: ScoringContext) -> np.ndarray:
+        return wpm(ctx.data, ctx.weights, ctx.directions)

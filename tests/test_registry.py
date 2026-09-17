@@ -321,6 +321,7 @@ class TestBuiltins:
             "marcos",
             "spotis",
             "waspas",
+            "wpm",
         ]
 
     def test_the_oriented_methods_are_the_classical_ones(self):

@@ -140,6 +140,7 @@ reversal_check(matrix, criteria, method="topsis", labels=labels)
 | `promethee` | PROMETHEE II net flows, six preference shapes | Brans & Vincke, 1985 |
 | `copras` | Complex proportional assessment | Zavadskas et al., 1994 |
 | `waspas` | Weighted sum and product blended | Zavadskas et al., 2012 |
+| `wpm` | Weighted product; a weak criterion cannot be paid for | Bridgman, 1922 |
 | `aras` | Additive ratio against a constructed optimum | Zavadskas & Turskis, 2010 |
 | `cocoso` | Combined compromise of three strategies | Yazdani et al., 2019 |
 | `codas` | Distance from the worst point | Keshavarz Ghorabaee et al., 2016 |

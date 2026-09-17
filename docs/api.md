@@ -142,6 +142,15 @@ the rest of the API:
 
 .. automodule:: mcdakit.methods.scoring
    :members: simple_scoring, weighted_scoring, saw
+
+.. automodule:: mcdakit.methods.copras
+   :members: copras, Copras
+
+.. automodule:: mcdakit.methods.waspas
+   :members: waspas, Waspas, wpm, Wpm
+
+.. automodule:: mcdakit.methods.reference_point
+   :members: aras, Aras, cocoso, Cocoso, codas, Codas, edas, Edas, mabac, Mabac, marcos, Marcos
 ```
 
 ## Normalisation
