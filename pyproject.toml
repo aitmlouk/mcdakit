@@ -44,7 +44,12 @@ dev = [
 compare = [
     "pymcdm>=1.1",
     "pyDecision>=5.0",
-    "pyrepo-mcda>=0.1",
+    # 0.1.15 is the version the cross-check was validated against; it requires
+    # Python 3.10, so on 3.9 pip silently resolves 0.1.9 instead. Both carry
+    # the routines the harness uses, but only the floor states what was
+    # actually checked.
+    "pyrepo-mcda>=0.1.15; python_version >= '3.10'",
+    "pyrepo-mcda>=0.1.9; python_version < '3.10'",
     "scikit-criteria>=0.8",
 ]
 docs = [
