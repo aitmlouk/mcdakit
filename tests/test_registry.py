@@ -311,7 +311,7 @@ class TestBuiltins:
         from cost totals; both handle direction themselves, so orienting the
         matrix first would apply the correction twice."""
         raw = sorted(c.name for c in BUILTIN_METHODS if c.wants is Wants.RAW)
-        assert raw == ["copras", "spotis"]
+        assert raw == ["copras", "spotis", "waspas"]
 
     def test_available_describes_every_method(self):
         described = available()

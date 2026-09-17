@@ -43,6 +43,7 @@ from .scoring import (
 from .spotis import BoundsWarning, Spotis, spotis
 from .topsis import Topsis, topsis
 from .vikor import Vikor, vikor
+from .waspas import Waspas, waspas
 
 #: The built-ins, in a sensible reading order: simplest first, the
 #: reversal-free one last.
@@ -55,6 +56,7 @@ BUILTIN_METHODS = (
     Electre,
     Promethee,
     Copras,
+    Waspas,
     Spotis,
 )
 
@@ -90,6 +92,7 @@ __all__ = [
     "Topsis",
     "Vikor",
     "Wants",
+    "Waspas",
     "WeightedScoring",
     "available",
     "copras",
@@ -110,5 +113,6 @@ __all__ = [
     "topsis",
     "unregister",
     "vikor",
+    "waspas",
     "weighted_scoring",
 ]

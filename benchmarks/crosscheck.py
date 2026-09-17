@@ -160,6 +160,19 @@ def _pymcdm_copras():
     return order(COPRAS()(MATRIX, WEIGHTS, TYPES))
 
 
+def _pymcdm_waspas():
+    from pymcdm.methods import WASPAS
+
+    return order(WASPAS()(MATRIX, WEIGHTS, TYPES))
+
+
+def _pyrepo_waspas():
+    from pyrepo_mcda.mcda_methods import WASPAS
+
+    with quiet():
+        return order(WASPAS()(MATRIX, WEIGHTS, TYPES))
+
+
 def _pydecision_saw():
     from pyDecision.algorithm import saw_method
 
@@ -201,6 +214,10 @@ CHECKS = {
     "vikor": {"pymcdm": _pymcdm_vikor, "pyDecision": _pydecision_vikor},
     "promethee": {"pymcdm (usual)": _pymcdm_promethee},
     "saw": {"pyDecision": _pydecision_saw},
+    "waspas": {
+        "pymcdm": _pymcdm_waspas,
+        "pyrepo-mcda": _pyrepo_waspas,
+    },
     "copras": {
         "pyrepo-mcda": _pyrepo_copras,
         "pymcdm": _pymcdm_copras,

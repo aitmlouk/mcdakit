@@ -250,6 +250,13 @@ class Method:
     wants: Wants = Wants.ORIENTED
     reversal_free: bool = False
 
+    #: Whether the method is defined only for strictly positive values.
+    #: WASPAS divides by them and raises them to fractional powers; COPRAS
+    #: normalises by a column total. Declaring the restriction lets the
+    #: conformance suite check what the method actually promises rather than
+    #: demanding a score for an input on which the method has no meaning.
+    requires_positive: bool = False
+
     #: The normalisation this method is defined with — a name from
     #: :mod:`mcdakit.normalization`, or ``None`` for a method that does not
     #: normalise. Callers override it with ``rank(..., normalization=...)``,

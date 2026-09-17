@@ -8,6 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **WASPAS** (`waspas`), blending the weighted sum and weighted product
+  models under a `lambda_` parameter. Agrees with `pymcdm` and `pyrepo-mcda`
+  to machine precision and with the published formula of Zavadskas et al.
+  (2012) written out independently.
+- Methods may declare `requires_positive`, which the conformance suite honours
+  by not demanding a score for a column of zeros — and then checks that the
+  method genuinely refuses such input rather than returning NaN, so the
+  exemption has to be earned.
 - **COPRAS** (`copras`), the first of the methods common to every other Python
   MCDA library. Validated against the published formula of Zavadskas,
   Kaklauskas and Sarka (1994) written out independently, and agreeing with

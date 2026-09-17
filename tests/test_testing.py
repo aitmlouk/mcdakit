@@ -480,3 +480,35 @@ class TestChecksCalledDirectly:
         method.score = own
         _check_raw_methods_see_raw_data(method)
         assert method.score is own, "an instance-level score must survive"
+
+
+class TestDeclaredDomain:
+    """`requires_positive` exempts a method from the finiteness check, so the
+    suite verifies the exemption is earned rather than merely claimed."""
+
+    def test_a_method_claiming_the_exemption_without_earning_it_is_caught(self):
+        class Pretender(Method):
+            name = "test_pretender"
+            summary = "Claims a positive-only domain but accepts anything."
+            citation = "n/a"
+            requires_positive = True
+
+            def score(self, ctx):
+                return ctx.data @ ctx.normalized_weights
+
+        report = conformance_report(Pretender())
+        assert report["a declared domain is enforced"]
+        assert (
+            "refuse input outside its domain"
+            in (report["a declared domain is enforced"])
+        )
+
+    def test_a_method_that_enforces_it_passes(self):
+        from mcdakit.methods import Waspas
+
+        assert conformance_report(Waspas())["a declared domain is enforced"] is None
+
+    def test_the_check_is_skipped_for_methods_without_the_declaration(self):
+        from mcdakit.methods import Topsis
+
+        assert conformance_report(Topsis())["a declared domain is enforced"] is None

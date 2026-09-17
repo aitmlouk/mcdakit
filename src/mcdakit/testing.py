@@ -123,10 +123,14 @@ def _check_scores_are_finite(method: Method):
             [5.0, 1.0],
             [5.0, 9.0],
         ],
-        "a column of zeros": [[0.0, 1.0], [0.0, 9.0]],
         "identical options": [[3.0, 3.0], [3.0, 3.0]],
         "a very wide range": [[1e-6, 1.0], [1e6, 9.0]],
     }
+    if not getattr(method, "requires_positive", False):
+        # A method defined only for positive values has no meaning here, and
+        # demanding a score would be asking it to invent one. Such a method
+        # must still refuse the input explicitly, which is checked below.
+        cases["a column of zeros"] = [[0.0, 1.0], [0.0, 9.0]]
     for description, matrix in cases.items():
         try:
             scores = _scores(method, _problem(matrix))
@@ -140,6 +144,25 @@ def _check_scores_are_finite(method: Method):
         if not np.all(np.isfinite(scores)):  # pragma: no cover
             return f"produced a non-finite score on {description}."
     return None
+
+
+def _check_a_declared_domain_is_enforced(method: Method):
+    """A method declaring `requires_positive` must actually refuse zero.
+
+    The declaration exempts it from the finiteness check above, so it has to
+    earn that exemption: a method that quietly returned NaN instead would get
+    the exemption without the guarantee.
+    """
+    if not getattr(method, "requires_positive", False):
+        return None
+    try:
+        _scores(method, _problem([[0.0, 1.0], [0.0, 9.0]]))
+    except McdaError:
+        return None
+    return (
+        "declares requires_positive but accepted a column of zeros; it must "
+        "refuse input outside its domain rather than return a score for it."
+    )
 
 
 def _check_higher_is_better(method: Method):
@@ -303,6 +326,7 @@ CHECKS = (
     ("handles cost criteria", _check_cost_criteria_are_handled),
     ("receives the data form it asked for", _check_raw_methods_see_raw_data),
     ("scores stay finite", _check_scores_are_finite),
+    ("a declared domain is enforced", _check_a_declared_domain_is_enforced),
     ("weight scale does not matter", _check_weight_scale_does_not_matter),
     ("option order does not matter", _check_option_order_does_not_matter),
     ("handles a single option", _check_single_option),
