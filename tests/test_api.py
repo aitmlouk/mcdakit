@@ -73,7 +73,50 @@ class TestAgreement:
         summary = agreement(compare_methods(procurement))
         assert sum(summary["winners"].values()) == len(METHODS)
         assert summary["of"] == len(METHODS)
-        assert summary["votes"] == summary["winners"][summary["consensus"]]
+        assert summary["votes"] == max(summary["winners"].values())
+
+    def test_a_tie_reports_no_consensus(self):
+        """Naming one of two equally-supported options as the consensus would
+        conceal the split this function exists to report.
+
+        This matrix was found by search rather than constructed: weighted
+        scoring picks Y and TOPSIS picks X, one vote each.
+        """
+        criteria = [
+            Criterion("A", 1 / 3, "benefit"),
+            Criterion("B", 1 / 3, "cost"),
+            Criterion("C", 1 / 3, "benefit"),
+        ]
+        summary = agreement(
+            compare_methods(
+                [[6.63, 9.07, 7.98], [3.03, 3.70, 8.86], [1.05, 8.39, 8.17]],
+                criteria,
+                labels=["X", "Y", "Z"],
+                methods=["weighted_scoring", "topsis"],
+            )
+        )
+        assert set(summary["tied"]) == {"X", "Y"}
+        assert summary["consensus"] is None, "a tie must not be reported as a consensus"
+        assert summary["votes"] == 1
+
+    def test_the_joint_leaders_are_named(self, procurement):
+        summary = agreement(compare_methods(procurement))
+        top = max(summary["winners"].values())
+        expected = {n for n, c in summary["winners"].items() if c == top}
+        assert set(summary["tied"]) == expected
+
+    def test_a_clear_winner_is_still_reported(self, supplier_criteria):
+        matrix = [[9, 9, 9, 9], [5, 5, 5, 5], [1, 1, 1, 1]]
+        summary = agreement(
+            compare_methods(
+                matrix,
+                supplier_criteria,
+                labels=["Best", "Mid", "Worst"],
+                methods=["weighted_scoring", "saw", "topsis"],
+            )
+        )
+        assert summary["consensus"] == "Best"
+        assert summary["tied"] == ("Best",)
 
     def test_disagreement_is_surfaced_not_hidden(self, procurement):
         """When methods split, that split is the finding."""

@@ -1,6 +1,6 @@
 # mcdakit
 
-Multi-criteria decision analysis for Python. Eight ranking methods, one
+Multi-criteria decision analysis for Python. Seventeen ranking methods, one
 dependency (numpy), and two features most MCDA libraries leave out:
 
 **Rankings that hold.** Most libraries answer *what is the ranking?*
@@ -63,16 +63,24 @@ random 5x4 problems, removing the last-placed option each time:
 | Method | Rank reversal rate |
 |---|---|
 | `simple_scoring` | 0.0% † |
+| `wpm` | 0.0% † |
 | **`spotis`** | **0.0%** |
-| `saw` | 1.8% |
+| `saw`, `waspas`, `marcos` | 1.8% |
+| `aras` | 12.0% |
+| `copras` | 15.0% |
+| `codas` | 17.0% |
 | `electre` | 18.5% |
+| `edas` | 18.8% |
 | `topsis` | 19.2% |
-| `weighted_scoring` | 27.5% |
+| `weighted_scoring`, `mabac` | 27.5% |
 | `promethee` | 29.8% |
 | `vikor` | 33.8% |
+| `cocoso` | 49.0% |
 
 † `simple_scoring` is stable only because it ignores weights *and*
-normalisation. That makes it unusable on mixed units, not trustworthy — the
+normalisation; `wpm` divides by the column maximum, which the last-placed
+option rarely sets in this all-benefit setup. Neither is reversal-free by
+construction. That makes it unusable on mixed units, not trustworthy — the
 two ways to avoid rank reversal are to use no information, or to use SPOTIS.
 
 Reproduce it yourself, on any problem size:
@@ -165,13 +173,15 @@ from mcdakit import compare_methods, agreement
 
 results = compare_methods(matrix, criteria, labels=labels)
 agreement(results)
-# {'winners': {'Option 1': 5, 'Option 2': 2, 'Option 3': 1},
-#  'consensus': 'Option 1', 'votes': 5, 'of': 8, 'unanimous': False}
+# {'winners': {'Option 3': 7, 'Option 1': 7, 'Option 2': 3},
+#  'consensus': None, 'tied': ('Option 3', 'Option 1'),
+#  'votes': 7, 'of': 17, 'unanimous': False}
 ```
 
-A 5-2-1 split says the options are close enough that the modelling choice
-decides the outcome. Collapsing that into one number would hide the most
-useful thing on the table.
+Seven methods to seven is a tie, so `consensus` is `None` and `tied` names
+both leaders. Reporting one of them as *the* answer would conceal the split.
+The options are close enough that the modelling choice decides the outcome,
+and that is the most useful thing on the table.
 
 ## Why did this option win?
 
@@ -531,8 +541,8 @@ python benchmarks/comparison.py
 
 Not a replacement for [`pymcdm`](https://pypi.org/project/pymcdm/) or
 [`scikit-criteria`](https://pypi.org/project/scikit-criteria/) if you want
-breadth — they carry many more methods and normalisation schemes. `mcdakit`
-carries eight methods and spends its surface area on stability instead.
+breadth — they carry more methods and normalisation schemes. `mcdakit`
+carries seventeen and spends its surface area on stability instead.
 
 ## Documentation
 

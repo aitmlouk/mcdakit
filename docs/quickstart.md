@@ -80,7 +80,8 @@ from mcdakit import compare_methods, agreement
 
 results = compare_methods(matrix, criteria, labels=labels)
 agreement(results)
-# {'winners': {...}, 'consensus': ..., 'votes': 5, 'of': 8, 'unanimous': False}
+# {'winners': {...}, 'consensus': ..., 'tied': (...), 'votes': 7, 'of': 17,
+#  'unanimous': False}
 ```
 
 When methods disagree, that disagreement *is* the finding: the options are

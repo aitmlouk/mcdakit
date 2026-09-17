@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `agreement()` returns `consensus: None` when two or more options tie for the
+  lead, and names the joint leaders in a new `tied` field. It previously
+  returned whichever tied option happened to be counted first, which reported
+  a split vote as though it were a decision — concealing the disagreement the
+  function exists to surface. Adding the seventeenth method turned the
+  documented example into a 7--7 tie and exposed this.
+- One module per method under `mcdakit.methods`, replacing the grouped
+  `reference_point` module. Import paths change for direct function imports
+  (`from mcdakit.methods.aras import aras`); `rank(method="aras")` and every
+  other public entry point are unaffected.
+
 ### Added
 
 - **WPM** (`wpm`), the weighted product model, also called MEW. Where a

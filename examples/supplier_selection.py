@@ -135,10 +135,17 @@ for name, outcome in results.items():
     print(f"  {name:<18} {outcome.winner}")
 
 summary = agreement(results)
-print(
-    f"\n  consensus: {summary['consensus']} "
-    f"({summary['votes']} of {summary['of']} methods)"
-)
+if summary["consensus"] is None:
+    joint = " and ".join(summary["tied"])
+    print(
+        f"\n  no consensus: {joint} tie on "
+        f"{summary['votes']} of {summary['of']} methods"
+    )
+else:
+    print(
+        f"\n  consensus: {summary['consensus']} "
+        f"({summary['votes']} of {summary['of']} methods)"
+    )
 print(f"  unanimous: {summary['unanimous']}")
 
 

@@ -212,21 +212,31 @@ def compare_methods(
 def agreement(results: dict) -> dict:
     """How much a :func:`compare_methods` mapping actually agrees.
 
-    ``winners`` counts how many methods picked each option;
-    ``consensus`` is the option most methods picked; ``unanimous`` says
-    whether every method agreed on the whole order, not merely the winner.
+    ``winners`` counts how many methods picked each option; ``consensus`` is
+    the option most methods picked, or ``None`` when two or more options tie
+    for the lead; ``tied`` lists the joint leaders; ``unanimous`` says whether
+    every method agreed on the whole order, not merely the winner.
+
+    A tie returns ``None`` rather than an arbitrary pick. Reporting one of two
+    equally-supported options as *the* consensus would conceal exactly the
+    disagreement this function exists to surface, and a caller reading
+    ``consensus`` alone would never learn the vote was split.
     """
     winners: dict = {}
     for result in results.values():
         winners[result.winner] = winners.get(result.winner, 0) + 1
 
     orders = {tuple(result.order) for result in results.values()}
-    consensus = max(winners, key=lambda name: winners[name]) if winners else None
+
+    top = max(winners.values()) if winners else 0
+    tied = tuple(name for name, count in winners.items() if count == top)
+    consensus = tied[0] if len(tied) == 1 else None
 
     return {
         "winners": winners,
         "consensus": consensus,
-        "votes": winners.get(consensus, 0),
+        "tied": tied,
+        "votes": top,
         "of": len(results),
         "unanimous": len(orders) == 1,
     }
