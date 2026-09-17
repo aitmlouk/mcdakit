@@ -198,3 +198,129 @@ class TestRankingsAgreeAtScale:
 
         # We negate so that larger is better; pymcdm reports the distance.
         assert np.allclose(-ours, theirs, atol=1e-12)
+
+
+class TestAgainstHandComputation:
+    """The strongest evidence available: arithmetic verifiable on paper.
+
+    Cross-library agreement shows two implementations concur; it does not
+    show either is right. These tests compute the method from its published
+    definition, independently of the package, and compare.
+    """
+
+    MATRIX = np.array(
+        [
+            [2.75, 7.0, 14.0, 8.0],
+            [2.90, 8.5, 16.0, 8.0],
+            [3.40, 9.0, 11.0, 7.0],
+            [2.20, 3.0, 32.0, 2.0],
+        ]
+    )
+    WEIGHTS = np.array([0.40, 0.25, 0.20, 0.15])
+    COST = [True, False, True, False]
+
+    def _vikor_by_hand(self, v=0.5):
+        """VIKOR from Opricovic and Tzeng's definition, written out in full."""
+        n_options, n_criteria = self.MATRIX.shape
+        S = np.zeros(n_options)
+        R = np.zeros(n_options)
+        for i in range(n_options):
+            terms = []
+            for j in range(n_criteria):
+                column = self.MATRIX[:, j]
+                best = column.min() if self.COST[j] else column.max()
+                worst = column.max() if self.COST[j] else column.min()
+                denominator = best - worst if best != worst else 1.0
+                terms.append(self.WEIGHTS[j] * (best - self.MATRIX[i, j]) / denominator)
+            S[i] = sum(terms)
+            R[i] = max(terms)
+        return v * (S - S.min()) / (S.max() - S.min()) + (1 - v) * (R - R.min()) / (
+            R.max() - R.min()
+        )
+
+    def test_vikor_matches_the_textbook_formula(self):
+        """Q values, not merely the ordering: an ordering can coincide by
+        accident where four values to four decimal places cannot."""
+        from mcdakit import Criterion, Decision, rank
+
+        criteria = [
+            Criterion(
+                f"C{j}", float(self.WEIGHTS[j]), "cost" if self.COST[j] else "benefit"
+            )
+            for j in range(4)
+        ]
+        # The package returns -Q so that larger is better throughout.
+        ours = -rank(Decision(self.MATRIX, criteria), method="vikor").scores
+        assert ours == pytest.approx(self._vikor_by_hand(), abs=1e-9)
+
+    def test_vikor_respects_the_v_parameter(self):
+        from mcdakit import Criterion, Decision, rank
+
+        criteria = [
+            Criterion(
+                f"C{j}", float(self.WEIGHTS[j]), "cost" if self.COST[j] else "benefit"
+            )
+            for j in range(4)
+        ]
+        decision = Decision(self.MATRIX, criteria)
+        for v in (0.0, 0.25, 0.75, 1.0):
+            ours = -rank(decision, method="vikor", v=v).scores
+            assert ours == pytest.approx(self._vikor_by_hand(v), abs=1e-9)
+
+
+class TestAgainstPyDecision:
+    """A second independent implementation, for the methods pymcdm lacks.
+
+    pyDecision returns tables of ``[option_number, value]`` sorted by value,
+    so the option number in column zero is the only safe way to recover which
+    score belongs to which alternative. Reading column one positionally
+    produced a spurious VIKOR disagreement while this suite was being written.
+    """
+
+    MATRIX = TestAgainstHandComputation.MATRIX
+    WEIGHTS = TestAgainstHandComputation.WEIGHTS
+    TYPES = ["min", "max", "min", "max"]
+
+    def _criteria(self):
+        from mcdakit import Criterion
+
+        return [
+            Criterion(
+                f"C{j}", float(self.WEIGHTS[j]), "cost" if t == "min" else "benefit"
+            )
+            for j, t in enumerate(self.TYPES)
+        ]
+
+    def _quiet(self, fn):
+        import contextlib
+        import io
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with contextlib.redirect_stdout(io.StringIO()):
+                return fn()
+
+    def test_vikor_agrees_with_a_third_implementation(self):
+        """Three independent implementations converging is materially
+        stronger evidence than two."""
+        pytest.importorskip("pyDecision", reason="dev-only cross-check")
+        from pyDecision.algorithm import vikor_method
+
+        from mcdakit import Decision, rank
+
+        out = self._quiet(
+            lambda: vikor_method(
+                self.MATRIX,
+                self.WEIGHTS,
+                self.TYPES,
+                graph=False,
+                verbose=False,
+            )
+        )
+        table = np.asarray(out[2], dtype=float)
+        theirs = {int(i) - 1: q for i, q in table}
+
+        ours = -rank(Decision(self.MATRIX, self._criteria()), method="vikor").scores
+        for index, q in theirs.items():
+            assert ours[index] == pytest.approx(q, abs=1e-9)

@@ -20,6 +20,7 @@ mypy                             # types
 vulture src/ .vulture-allowlist.py --min-confidence 60   # dead code
 python benchmarks/reversal.py    # SPOTIS must measure 0.0%
 python benchmarks/comparison.py  # against pymcdm et al. (needs the extras)
+python benchmarks/crosscheck.py  # every method vs every rival that has it
 ```
 
 All of these must pass. `ruff format .` fixes formatting in place.
