@@ -206,3 +206,20 @@ class TestDistinctFromWhatOthersExposeAsAhp:
 
         elicited = ahp_weights(CRITERIA, names=NAMES)
         assert car_problem().weights == pytest.approx(elicited["weights"], abs=1e-12)
+
+
+class TestLongNamesStayReadable:
+    """Criteria and alternatives carry real names, not placeholders."""
+
+    def test_no_label_is_glued_to_its_score(self):
+        text = str(
+            ahp_rank(
+                CRITERIA,
+                [STYLE, RELIABILITY, FUEL],
+                names=["Aesthetic styling", "Long-term reliability", "Fuel economy"],
+                labels=["Honda Civic Hybrid", "Saturn Aura XE", "Ford Escort"],
+            )
+        )
+        for line in text.splitlines():
+            if "0." in line and "!" not in line:
+                assert "  0." in line, f"name and number are not separated: {line!r}"

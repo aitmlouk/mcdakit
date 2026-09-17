@@ -103,8 +103,11 @@ class Explanation:
             f"{self.option} scored {self.score:.4f} under {self.method}",
             f"  attribution: {self.basis}",
         ]
+        width = max((len(c.criterion) for c in self.contributions), default=0) + 2
         for c in self.contributions:
-            lines.append(f"  {c.criterion:<14}{c.contribution:+.4f}  ({c.share:>5.0%})")
+            lines.append(
+                f"  {c.criterion:<{width}}{c.contribution:+.4f}  ({c.share:>5.0%})"
+            )
         if self.basis == "leave_one_out":
             lines.append(
                 "  (attributions from removing each criterion; they do not "
@@ -131,6 +134,7 @@ class Margin:
             f"under {self.method}",
             f"  attribution: {self.basis}",
         ]
+        width = max((len(name) for name, _ in self.rows), default=0) + 2
         for criterion, delta in self.rows:
             # A criterion the two options score alike separates them not at
             # all; saying it "favours" either would misread a tie.
@@ -138,7 +142,7 @@ class Margin:
                 side = "no difference"
             else:
                 side = "favours " + (self.winner if delta > 0 else self.loser)
-            lines.append(f"  {criterion:<14}{delta:+.4f}  {side}")
+            lines.append(f"  {criterion:<{width}}{delta:+.4f}  {side}")
         if self.decisive:
             lines.append(
                 f"  {self.decisive} is decisive: without it the result reverses"

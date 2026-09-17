@@ -225,12 +225,14 @@ class AhpResult:
 
     def __str__(self) -> str:
         lines = ["AHP ranking:"]
+        label_width = max((len(label) for label, _ in self.ranking), default=0) + 2
         for position, (label, score) in enumerate(self.ranking, start=1):
-            lines.append(f"  {position}. {label:<14}{score:.4f}")
+            lines.append(f"  {position}. {label:<{label_width}}{score:.4f}")
         lines.append("  consistency ratios:")
+        name_width = max((len(n) for n in self.consistency), default=0) + 2
         for name, ratio in self.consistency.items():
             flag = "  EXCEEDS 0.10" if ratio > CONSISTENCY_LIMIT else ""
-            lines.append(f"    {name:<16}{ratio:.4f}{flag}")
+            lines.append(f"    {name:<{name_width}}{ratio:.4f}{flag}")
         if self.inconsistent:
             verb = "contradicts" if len(self.inconsistent) == 1 else "contradict"
             lines.append(

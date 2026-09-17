@@ -12,6 +12,7 @@ from mcdakit import Criterion, McdaError
 from mcdakit.ai import (
     AiError,
     critique_weights,
+    propose_comparisons,
     propose_criteria,
     propose_weights,
 )
@@ -733,3 +734,16 @@ class TestUncoveredPaths:
         assert "Stability: immovable" in out["facts"]
         assert "moves by" not in out["facts"]
         assert out["faithful"]
+
+
+class TestComparisonProposalPrintsReadably:
+    def test_a_long_criterion_name_is_not_glued_to_its_weight(self):
+        criteria = [
+            Criterion("Security & compliance certifications", 0.5, "benefit"),
+            Criterion("Cost", 0.5, "cost"),
+        ]
+        reply = '[{"i": 0, "j": 1, "ratio": 3}]'
+        text = str(propose_comparisons("hosting", criteria, ask=lambda _: reply))
+        for line in text.splitlines():
+            if "0." in line and "ratio" not in line:
+                assert "  0." in line, f"name and number are not separated: {line!r}"

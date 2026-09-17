@@ -246,3 +246,35 @@ class TestNoSingleDecisiveCriterion:
         text = str(compare(self._wide_margin(), "Strong", "Weak"))
         assert "decisive" not in text
         assert "Strong beats Weak" in text
+
+
+class TestLongCriterionNamesStayReadable:
+    """Real criterion names are often long ("Security & compliance
+    certifications"). A fixed column width silently glues the name to the
+    number, and explain() is the feature whose whole point is legibility.
+    """
+
+    def problem(self):
+        criteria = [
+            Criterion("Security & compliance certifications", 0.40, "benefit"),
+            Criterion("Monthly infrastructure cost", 0.35, "cost"),
+            Criterion("Support", 0.25, "benefit"),
+        ]
+        matrix = np.array([[8.0, 4200.0, 7.0], [6.0, 3800.0, 9.0], [9.0, 5000.0, 5.0]])
+        return rank(
+            matrix, criteria, method="weighted_scoring", labels=["AWS", "Azure", "GCP"]
+        )
+
+    def test_explain_separates_every_name_from_its_number(self):
+        for line in str(explain(self.problem(), "AWS")).splitlines():
+            if "+" in line or "-" in line:
+                assert "  +" in line or "  -" in line, (
+                    f"name and number are not separated: {line!r}"
+                )
+
+    def test_compare_separates_every_name_from_its_number(self):
+        for line in str(compare(self.problem(), "AWS", "Azure")).splitlines():
+            if "favours" in line:
+                assert "  +" in line or "  -" in line, (
+                    f"name and number are not separated: {line!r}"
+                )

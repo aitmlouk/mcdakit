@@ -461,8 +461,9 @@ class ComparisonProposal:
             f"consistency ratio {self.consistency_ratio:.3f} "
             f"({'consistent' if self.consistent else 'INCONSISTENT'})"
         ]
+        width = max((len(c.name) for c in self.criteria), default=0) + 2
         for criterion, weight in zip(self.criteria, self.weights):
-            lines.append(f"  {criterion.name:<14}{weight:.4f}")
+            lines.append(f"  {criterion.name:<{width}}{weight:.4f}")
         if not self.consistent:
             lines.append(
                 "  ! the judgements contradict each other; ask again or "
