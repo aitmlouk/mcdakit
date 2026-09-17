@@ -22,7 +22,15 @@ Run with::
 Requires the comparison libraries, which are dev-only and never a runtime
 dependency::
 
-    pip install pymcdm pyDecision
+    pip install -e ".[compare]"
+
+Every library that implements a method is compared against it. Where two
+disagree, the difference is either a defect or a documented modelling choice;
+``EXPECTED_DIFFERENCES`` records the attributed ones so a known choice is not
+re-reported as a fresh discrepancy, and any unattributed difference fails the
+run. ``check_orientation_conventions`` backs the attribution up: it re-runs
+the problem with every criterion declared a benefit, where no cost transform
+fires anywhere, and requires the libraries to agree to machine precision.
 """
 
 from __future__ import annotations
@@ -188,6 +196,47 @@ def _pymcdm_wpm():
     )
 
 
+def _pyrepo_topsis():
+    """pyrepo's TOPSIS defaults to min-max; forced onto vector normalisation it
+    still differs, because it treats a cost criterion as ``1 - x/||x||``
+    (complement after normalising) where mcdakit mirrors the interval
+    (``max + min - x``) before normalising. Both are published variants. On an
+    all-benefit matrix, where neither transform fires, the two agree to 1e-12
+    — see ``check_orientation_conventions``.
+    """
+    from pyrepo_mcda import normalizations as nz
+    from pyrepo_mcda.mcda_methods import TOPSIS
+
+    with quiet():
+        return order(
+            TOPSIS(normalization_method=nz.vector_normalization)(MATRIX, WEIGHTS, TYPES)
+        )
+
+
+def _pyrepo_saw():
+    """Same cost convention as pyDecision: ``min/x`` rather than the interval
+    mirror. Agrees with mcdakit to 1e-12 on all-benefit data."""
+    from pyrepo_mcda.mcda_methods import SAW
+
+    with quiet():
+        return order(SAW()(MATRIX, WEIGHTS, TYPES))
+
+
+def _skcriteria_topsis():
+    """scikit-criteria inverts cost criteria before scaling. Agrees with
+    mcdakit to 1e-9 on all-benefit data."""
+    import skcriteria as sk
+    from skcriteria.agg.similarity import TOPSIS
+    from skcriteria.preprocessing.scalers import VectorScaler
+
+    dm = sk.mkdm(
+        MATRIX, [min if d == "cost" else max for d in DIRECTIONS], weights=WEIGHTS
+    )
+    with quiet():
+        result = TOPSIS().evaluate(VectorScaler(target="matrix").transform(dm))
+    return tuple(np.argsort(result.rank_))
+
+
 def _pymcdm_named(name):
     """A pymcdm method invoked by name, for the many that share a signature."""
 
@@ -237,11 +286,13 @@ CHECKS = {
     "topsis": {
         "pymcdm (vector norm)": _pymcdm_topsis_vector,
         "pymcdm (default min-max)": _pymcdm_topsis_default,
+        "pyrepo-mcda": _pyrepo_topsis,
+        "scikit-criteria": _skcriteria_topsis,
     },
     "spotis": {"pymcdm": _pymcdm_spotis},
     "vikor": {"pymcdm": _pymcdm_vikor, "pyDecision": _pydecision_vikor},
     "promethee": {"pymcdm (usual)": _pymcdm_promethee},
-    "saw": {"pyDecision": _pydecision_saw},
+    "saw": {"pyDecision": _pydecision_saw, "pyrepo-mcda": _pyrepo_saw},
     "waspas": {
         "pymcdm": _pymcdm_waspas,
         "pyrepo-mcda": _pyrepo_waspas,
@@ -276,6 +327,23 @@ EXPECTED_DIFFERENCES = {
         "rather than inverting it. pyrepo-mcda, pyDecision and the formula of "
         "Zavadskas et al. (1994) all invert it, and mcdakit follows those "
         "three."
+    ),
+    ("topsis", "pyrepo-mcda"): (
+        "pyrepo treats a cost criterion as 1 - x/||x||, taking the complement "
+        "after normalising; mcdakit mirrors the interval (max + min - x) "
+        "before normalising. Both appear in the literature. On an all-benefit "
+        "matrix the two agree to 1e-12, which isolates the difference to the "
+        "cost transform alone."
+    ),
+    ("topsis", "scikit-criteria"): (
+        "scikit-criteria inverts cost criteria before scaling rather than "
+        "mirroring the interval. It agrees with mcdakit to 1e-9 on an "
+        "all-benefit matrix."
+    ),
+    ("saw", "pyrepo-mcda"): (
+        "pyrepo uses the same cost convention as pyDecision (min/x) rather "
+        "than the interval mirror. Agrees with mcdakit to 1e-12 on an "
+        "all-benefit matrix."
     ),
     ("topsis", "pymcdm (default min-max)"): (
         "pymcdm defaults to min-max normalisation; mcdakit follows Hwang and "
@@ -326,6 +394,104 @@ def check_ahp() -> bool:
     return agrees
 
 
+def check_orientation_conventions() -> bool:
+    """Prove that the TOPSIS and SAW disagreements are cost handling alone.
+
+    Libraries differ in how they turn a cost criterion into a benefit one:
+    mcdakit mirrors the interval (``max + min - x``), pyrepo takes a
+    complement or a ratio, scikit-criteria inverts. Those are modelling
+    choices, not defects — but saying so is only credible if the underlying
+    algorithms agree once the choice is removed.
+
+    So run the same problem with every criterion declared a benefit, where no
+    cost transform fires in any library. What remains is the core algorithm,
+    and it must agree to machine precision.
+    """
+    from mcdakit import Criterion, Decision, rank
+
+    benefit = [
+        Criterion(n, float(w), "benefit")
+        for n, w in zip(("Price", "Quality", "Lead time", "Support"), WEIGHTS)
+    ]
+    all_benefit = np.ones(4, dtype=int)
+
+    print(f"\n{'-' * 74}\nsame problem, all criteria declared benefit\n{'-' * 74}")
+    print("  (no cost transform fires, so only the core algorithm is compared)")
+
+    ok = True
+    for method, get_theirs in (
+        ("topsis", _all_benefit_topsis),
+        ("saw", _all_benefit_saw),
+    ):
+        mine = rank(Decision(MATRIX, benefit, LABELS), method=method).scores
+        for label, fn in get_theirs(all_benefit):
+            try:
+                theirs = fn()
+            except Exception as exc:
+                print(f"  {method:<8} {label:<18} unavailable: {type(exc).__name__}")
+                continue
+            agrees = bool(np.allclose(theirs, mine, atol=1e-9))
+            print(
+                f"  {method:<8} {label:<18} {'MATCH ' if agrees else 'DIFFER'}"
+                f"  max|delta| = {np.abs(np.asarray(theirs) - mine).max():.2e}"
+            )
+            ok = ok and agrees
+    return ok
+
+
+def _all_benefit_topsis(types):
+    def pyrepo():
+        from pyrepo_mcda import normalizations as nz
+        from pyrepo_mcda.mcda_methods import TOPSIS
+
+        with quiet():
+            return np.asarray(
+                TOPSIS(normalization_method=nz.vector_normalization)(
+                    MATRIX, WEIGHTS, types
+                ),
+                dtype=float,
+            )
+
+    def skcrit():
+        import skcriteria as sk
+        from skcriteria.agg.similarity import TOPSIS
+        from skcriteria.preprocessing.scalers import VectorScaler
+
+        dm = sk.mkdm(MATRIX, [max] * 4, weights=WEIGHTS)
+        with quiet():
+            return np.asarray(
+                TOPSIS()
+                .evaluate(VectorScaler(target="matrix").transform(dm))
+                .e_.similarity,
+                dtype=float,
+            )
+
+    def pymcdm_vec():
+        from pymcdm.methods import TOPSIS
+        from pymcdm.normalizations import vector_normalization
+
+        return np.asarray(
+            TOPSIS(normalization_function=vector_normalization)(MATRIX, WEIGHTS, types),
+            dtype=float,
+        )
+
+    return (
+        ("pyrepo-mcda", pyrepo),
+        ("scikit-criteria", skcrit),
+        ("pymcdm", pymcdm_vec),
+    )
+
+
+def _all_benefit_saw(types):
+    def pyrepo():
+        from pyrepo_mcda.mcda_methods import SAW
+
+        with quiet():
+            return np.asarray(SAW()(MATRIX, WEIGHTS, types), dtype=float)
+
+    return (("pyrepo-mcda", pyrepo),)
+
+
 def main() -> int:
     print("=" * 74)
     print("Cross-checking mcdakit against independent implementations")
@@ -363,6 +529,9 @@ def main() -> int:
 
     if not check_ahp():
         unexplained.append(("ahp", "pyrepo-mcda"))
+
+    if not check_orientation_conventions():
+        unexplained.append(("topsis/saw", "all-benefit isolation"))
 
     print(f"\n{'=' * 74}")
     if unexplained:

@@ -41,7 +41,12 @@ dev = [
 ]
 # Cross-validation against independent implementations. Dev-only:
 # never a runtime dependency.
-compare = ["pymcdm>=1.1", "pyDecision>=5.0"]
+compare = [
+    "pymcdm>=1.1",
+    "pyDecision>=5.0",
+    "pyrepo-mcda>=0.1",
+    "scikit-criteria>=0.8",
+]
 docs = [
     "sphinx>=7",
     "furo>=2024.1",
