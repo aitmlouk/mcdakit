@@ -8,6 +8,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Full AHP** (`ahp_rank`), ranking alternatives from pairwise comparisons
+  alone — no decision matrix. Alternatives are compared against each other
+  under each criterion, so criteria nobody can measure numerically can still
+  drive the ranking. Reproduces Saaty's car example, and reports a consistency
+  ratio for every comparison matrix separately rather than averaging them,
+  since a hierarchy is only as sound as its least coherent judgement set.
+  `AhpResult.inconsistent` names the offenders. Cross-checked against
+  `pyrepo-mcda`'s `_classic_ahp`, which agrees on weights, global priorities
+  and consistency ratios to fourteen significant figures.
+
+  Note that the *public* `AHP` of `pyrepo-mcda` is a min-max weighted sum over
+  a numeric matrix (verified identical to `weighted_scoring` here, as its own
+  docstring concedes), and `pyDecision`'s `ahp_method` is the weighting step
+  alone (identical to `ahp_weights` here). Full AHP exists in `pyrepo-mcda`
+  only as a private method.
 - **ARAS, COCOSO, CODAS, EDAS, MABAC and MARCOS**, completing the set of
   methods common to every other Python MCDA library. Each reproduces values
   that `pymcdm` and `pyrepo-mcda` independently agree on, and matches `pymcdm`

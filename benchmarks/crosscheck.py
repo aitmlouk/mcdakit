@@ -269,6 +269,47 @@ EXPECTED_DIFFERENCES = {
 }
 
 
+#: Saaty's car hierarchy. AHP takes comparison matrices rather than the shared
+#: decision matrix, so it is cross-checked separately from CHECKS.
+AHP_CRITERIA = np.array([[1, 1 / 2, 3], [2, 1, 4], [1 / 3, 1 / 4, 1]], dtype=float)
+AHP_ALTERNATIVES = [
+    np.array([[1, 1 / 4, 4], [4, 1, 4], [1 / 4, 1 / 4, 1]], dtype=float),
+    np.array([[1, 2, 5], [1 / 2, 1, 3], [1 / 5, 1 / 3, 1]], dtype=float),
+    np.array([[1, 1 / 3, 1 / 2], [3, 1, 2], [2, 1 / 2, 1]], dtype=float),
+]
+
+
+def check_ahp() -> bool:
+    """Compare full AHP against pyrepo-mcda's ``AHP._classic_ahp``.
+
+    The public ``AHP`` of pyrepo-mcda is a weighted sum over a numeric matrix,
+    and pyDecision's ``ahp_method`` is the weighting step alone; neither
+    compares alternatives pairwise. The private ``_classic_ahp`` does, so it is
+    the only independent implementation to check against. Priorities are
+    compared numerically rather than by rank, the agreement being exact.
+    """
+    from mcdakit import ahp_rank
+
+    print(f"\n{'-' * 74}\nahp (full hierarchy)\n{'-' * 74}")
+    mine = ahp_rank(AHP_CRITERIA, AHP_ALTERNATIVES)
+    print(f"  mcdakit              {np.round(mine.scores, 6)}")
+
+    try:
+        from pyrepo_mcda.mcda_methods import AHP
+    except Exception as exc:
+        print(f"  {'pyrepo-mcda':<21}unavailable: {type(exc).__name__}: {exc}")
+        return True
+
+    rival = AHP()
+    with quiet():
+        weights = rival._geometric_mean(AHP_CRITERIA)
+        theirs = rival._classic_ahp(AHP_ALTERNATIVES, weights, rival._geometric_mean)
+    agrees = bool(np.allclose(theirs, mine.scores, atol=1e-12))
+    verdict = "MATCH " if agrees else "DIFFER"
+    print(f"  {'pyrepo-mcda':<21}{np.round(theirs, 6)}  {verdict}")
+    return agrees
+
+
 def main() -> int:
     print("=" * 74)
     print("Cross-checking mcdakit against independent implementations")
@@ -303,6 +344,9 @@ def main() -> int:
                     print(f"    explained: {note}")
                 else:
                     unexplained.append((method, label))
+
+    if not check_ahp():
+        unexplained.append(("ahp", "pyrepo-mcda"))
 
     print(f"\n{'=' * 74}")
     if unexplained:

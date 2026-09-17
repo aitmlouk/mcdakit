@@ -13,6 +13,7 @@ other.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -180,3 +181,190 @@ def ahp_weights(judgements, names: Sequence[str] | None = None) -> dict:
         "names": list(names),
         "matrix": matrix,
     }
+
+
+@dataclass(frozen=True)
+class AhpResult:
+    """A full AHP hierarchy, and how coherent the judgements behind it were.
+
+    Attributes
+    ----------
+    scores:
+        One priority per alternative, summing to one. Higher is better.
+    weights:
+        The criterion weights derived from the criteria comparison matrix.
+    local_priorities:
+        Alternatives by criteria: each column is the alternatives' priorities
+        under one criterion.
+    consistency:
+        ``{"criteria": ratio, criterion_name: ratio, ...}``. Reported for
+        every matrix separately, because a hierarchy is only as sound as its
+        least coherent judgement set and an average would hide exactly that.
+    inconsistent:
+        Names of the matrices exceeding :data:`CONSISTENCY_LIMIT`. Empty when
+        every judgement set holds together.
+    """
+
+    scores: np.ndarray
+    weights: np.ndarray
+    local_priorities: np.ndarray
+    names: tuple
+    labels: tuple
+    consistency: dict
+    inconsistent: tuple
+
+    @property
+    def ranking(self) -> list:
+        """``[(label, score), ...]`` best first."""
+        order = sorted(range(len(self.scores)), key=lambda i: -self.scores[i])
+        return [(self.labels[i], float(self.scores[i])) for i in order]
+
+    @property
+    def winner(self) -> str:
+        return self.ranking[0][0]
+
+    def __str__(self) -> str:
+        lines = ["AHP ranking:"]
+        for position, (label, score) in enumerate(self.ranking, start=1):
+            lines.append(f"  {position}. {label:<14}{score:.4f}")
+        lines.append("  consistency ratios:")
+        for name, ratio in self.consistency.items():
+            flag = "  EXCEEDS 0.10" if ratio > CONSISTENCY_LIMIT else ""
+            lines.append(f"    {name:<16}{ratio:.4f}{flag}")
+        if self.inconsistent:
+            verb = "contradicts" if len(self.inconsistent) == 1 else "contradict"
+            lines.append(
+                f"  ! {', '.join(self.inconsistent)} {verb} itself; revisit "
+                f"those judgements before relying on the ranking"
+                if len(self.inconsistent) == 1
+                else f"  ! {', '.join(self.inconsistent)} {verb} themselves; "
+                f"revisit those judgements before relying on the ranking"
+            )
+        return "\n".join(lines)
+
+
+def ahp_rank(
+    criteria_comparisons,
+    alternative_comparisons: Sequence,
+    names: Sequence[str] | None = None,
+    labels: Sequence[str] | None = None,
+) -> AhpResult:
+    """Rank alternatives by pairwise comparison throughout the hierarchy.
+
+    This is AHP as Saaty defined it, and it differs from every other method in
+    this package in what it asks for. There is no decision matrix: instead the
+    alternatives are compared against each other, pair by pair, separately
+    under each criterion. That is what makes the method usable on criteria
+    nobody can measure --- a supplier's reputation, the quality of a design ---
+    where asking *is A better than B on this, and by how much* is answerable
+    and asking for a number is not.
+
+    The price is quadratic: :math:`n(n-1)/2` judgements per criterion, plus
+    the criteria themselves. The compensation is that the judgements can be
+    checked. A person who says A is three times B, B three times C, and then
+    A twice C has contradicted themselves, and the consistency ratio detects
+    it without anyone knowing what the right answer was.
+
+    Parameters
+    ----------
+    criteria_comparisons:
+        A reciprocal matrix comparing the criteria, or a ``{(i, j): ratio}``
+        mapping of its upper triangle.
+    alternative_comparisons:
+        One comparison matrix per criterion, in the same order as the
+        criteria, each comparing the alternatives under that criterion.
+    names, labels:
+        Criterion and alternative names, for the report.
+
+    Returns
+    -------
+    AhpResult
+        With the ranking, the weights, and a consistency ratio for every
+        matrix. Inconsistency is reported and never enforced: whether a
+        contradiction is fatal is the analyst's judgement, not the library's.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from mcdakit import ahp_rank
+    >>> criteria = np.array([[1.0, 3.0], [1 / 3, 1.0]])
+    >>> per_criterion = [
+    ...     np.array([[1.0, 5.0], [1 / 5, 1.0]]),
+    ...     np.array([[1.0, 1 / 3], [3.0, 1.0]]),
+    ... ]
+    >>> result = ahp_rank(criteria, per_criterion, labels=["A", "B"])
+    >>> result.winner
+    'A'
+    """
+    alternative_comparisons = list(alternative_comparisons)
+    if not alternative_comparisons:
+        raise McdaError(
+            "ahp_rank needs one comparison matrix per criterion; none were given."
+        )
+
+    n_criteria = len(alternative_comparisons)
+    if names is None:
+        names = [f"Criterion {j + 1}" for j in range(n_criteria)]
+    names = tuple(str(n) for n in names)
+    if len(names) != n_criteria:
+        raise McdaError(
+            f"Got {len(names)} criterion names for {n_criteria} comparison matrices."
+        )
+
+    if isinstance(criteria_comparisons, dict):
+        criteria_matrix = comparison_matrix(n_criteria, criteria_comparisons)
+    else:
+        criteria_matrix = np.asarray(criteria_comparisons, dtype=float)
+    if criteria_matrix.shape != (n_criteria, n_criteria):
+        raise McdaError(
+            f"The criteria comparison matrix is {criteria_matrix.shape}, but "
+            f"{n_criteria} comparison matrices were given, one per criterion."
+        )
+
+    weights = priorities(criteria_matrix)
+    consistency = {"criteria": float(consistency_ratio(criteria_matrix, weights))}
+
+    columns, n_alternatives = [], None
+    for name, comparisons in zip(names, alternative_comparisons):
+        matrix = np.asarray(comparisons, dtype=float)
+        if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+            raise McdaError(
+                f"The comparison matrix for {name!r} must be square, got "
+                f"shape {matrix.shape}."
+            )
+        if n_alternatives is None:
+            n_alternatives = matrix.shape[0]
+        elif matrix.shape[0] != n_alternatives:
+            raise McdaError(
+                f"The comparison matrix for {name!r} compares "
+                f"{matrix.shape[0]} alternatives, but earlier matrices "
+                f"compared {n_alternatives}. Every criterion must rank the "
+                f"same alternatives."
+            )
+        local = priorities(matrix)
+        columns.append(local)
+        consistency[name] = float(consistency_ratio(matrix, local))
+
+    if labels is None:
+        labels = [f"Option {i + 1}" for i in range(n_alternatives or 0)]
+    labels = tuple(str(label) for label in labels)
+    if len(labels) != n_alternatives:
+        raise McdaError(
+            f"Got {len(labels)} alternative labels for {n_alternatives} alternatives."
+        )
+
+    local_priorities = np.column_stack(columns)
+    scores = local_priorities @ weights
+
+    inconsistent = tuple(
+        name for name, ratio in consistency.items() if ratio > CONSISTENCY_LIMIT
+    )
+    return AhpResult(
+        scores=scores.astype(float),
+        weights=weights,
+        local_priorities=local_priorities,
+        names=names,
+        labels=labels,
+        consistency=consistency,
+        inconsistent=inconsistent,
+    )

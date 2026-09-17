@@ -367,6 +367,44 @@ out["consistent"]  # True (Saaty's 0.10 rule of thumb)
 The consistency ratio is reported, never enforced. An inconsistent matrix is a
 signal to revisit the judgements, not an error.
 
+### Ranking without a decision matrix
+
+Sometimes there are no numbers to put in a matrix. Nobody can score *style* out
+of ten, but anyone can say this car looks better than that one. `ahp_rank`
+compares alternatives pairwise under each criterion as well, which is AHP as
+Saaty defined it — the decision matrix disappears entirely:
+
+```python
+from mcdakit import ahp_rank
+
+result = ahp_rank(
+    {(0, 1): 1 / 2, (0, 2): 3, (1, 2): 4},   # how the criteria compare
+    [style, reliability, fuel],              # how the cars compare, per criterion
+    names=["Style", "Reliability", "Fuel economy"],
+    labels=["Civic", "Saturn", "Escort"],
+)
+print(result)
+```
+
+```
+AHP ranking:
+  1. Saturn        0.4440
+  2. Civic         0.4263
+  3. Escort        0.1297
+  consistency ratios:
+    criteria        0.0158
+    Style           0.1874  EXCEEDS 0.10
+    Reliability     0.0032
+    Fuel economy    0.0079
+  ! Style contradicts itself; revisit those judgements before relying on the ranking
+```
+
+Every matrix gets its own consistency ratio, reported separately. An average
+would hide the one that matters: here the style judgements contradict
+themselves, and Saturn leads Civic by less than that inconsistency is worth.
+The ranking is still returned — whether the contradiction is disqualifying is a
+judgement for whoever made the comparisons.
+
 ## PROMETHEE preference functions
 
 By default PROMETHEE's *usual* criterion treats any difference however small as

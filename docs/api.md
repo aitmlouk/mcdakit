@@ -64,8 +64,13 @@ module. No extra dependency is required.
 
 ```{eval-rst}
 .. automodule:: mcdakit.ahp
-   :members: ahp_weights, priorities, consistency_ratio, comparison_matrix
+   :members: ahp_rank, AhpResult, ahp_weights, priorities, consistency_ratio, comparison_matrix
 ```
+
+:func:`~mcdakit.ahp_weights` uses pairwise comparison to obtain criterion
+weights, which then feed a method that scores a numeric decision matrix.
+:func:`~mcdakit.ahp_rank` is the full method: alternatives are compared
+pairwise under each criterion too, so no decision matrix is needed at all.
 
 ## The extension contract
 
