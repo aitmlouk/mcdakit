@@ -19,3 +19,8 @@ paper-*/
 
 # macOS
 .DS_Store
+
+# Secrets. Never commit a key.
+.env
+.env.*
+!.env.example

@@ -33,7 +33,7 @@ runtime dependency.
 
 ```{eval-rst}
 .. automodule:: mcdakit.ai_providers
-   :members: openai, anthropic, google, ollama, openai_compatible, ProviderError
+   :members: openai, anthropic, google, ollama, openai_compatible, load_env, ProviderError
 ```
 
 ## Explaining a result

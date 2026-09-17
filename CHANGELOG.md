@@ -43,6 +43,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `mcdakit.ai` still takes any `Callable[[str], str]`, so an in-house gateway
   or a test fixture works exactly as before. The adapters are a convenience,
   not a requirement.
+- `load_env()` reads `KEY=value` lines from a `.env` file into the
+  environment, so keys live in a gitignored file rather than in source. It
+  searches parent directories, understands `export`, quotes and comments, and
+  leaves an already-set variable alone unless `override=True` — a file in a
+  checkout should not silently beat what a deployment set. No dependency is
+  added; `python-dotenv` would cost more than the dozen lines it replaces.
+  A `.env.example` template ships with the repository, and `.env` is
+  gitignored.
 
 - **WPM** (`wpm`), the weighted product model, also called MEW. Where a
   weighted sum lets a strength pay for a weakness, the product does not: one

@@ -43,6 +43,62 @@ ask = ollama("llama3")               # local, no key, nothing leaves the machine
 ask = anthropic(model="claude-opus-5", api_key="sk-...")   # explicit
 ```
 
+### Where the key goes
+
+Three ways, in order of preference.
+
+**A `.env` file**, which is what most projects use locally:
+
+```bash
+# .env — add it to .gitignore, and never commit it
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=...
+```
+
+```python
+from mcdakit.ai_providers import load_env, anthropic
+
+load_env()          # finds ./.env, or the nearest one in a parent directory
+ask = anthropic()
+```
+
+`load_env` understands `KEY=value`, `export KEY=value`, quoted values,
+comments and blank lines. It does **not** overwrite a variable already set in
+the environment unless you pass `override=True` — the real environment should
+win over a file in a checkout, or deploying becomes surprising. A missing
+file is not an error, because production usually has none. No dependency is
+added: the parsing is a dozen lines.
+
+**Environment variables**, which need no code at all:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+| Function | Variable |
+|---|---|
+| `openai()` | `OPENAI_API_KEY` |
+| `anthropic()` | `ANTHROPIC_API_KEY` |
+| `google()` | `GOOGLE_API_KEY`, then `GEMINI_API_KEY` |
+| `ollama()` | none — local |
+| `openai_compatible()` | none, unless the server wants one |
+
+**Explicitly**, when a secrets manager already owns the key:
+
+```python
+ask = anthropic(api_key=vault.get("anthropic"))
+```
+
+An explicit key beats the environment, which beats the `.env` file. Get it
+wrong and the error names the variable rather than surfacing a vendor 401:
+
+```
+ProviderError: No API key for Anthropic. Set the ANTHROPIC_API_KEY
+environment variable, or pass api_key= explicitly. For a local model
+that needs no key, use ollama() or openai_compatible().
+```
+
 ### Local and self-hosted models
 
 `ollama()` covers the usual local case. For anything exposing the

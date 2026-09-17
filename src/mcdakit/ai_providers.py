@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import os
+import pathlib
 import time
 import urllib.error
 import urllib.request
@@ -44,6 +45,7 @@ __all__ = [
     "ProviderError",
     "anthropic",
     "google",
+    "load_env",
     "ollama",
     "openai",
     "openai_compatible",
@@ -60,6 +62,64 @@ DEFAULT_RETRIES = 3
 
 class ProviderError(McdaError):
     """A provider could not be reached, or refused the request."""
+
+
+def load_env(path: str = ".env", *, override: bool = False) -> dict:
+    """Read ``KEY=value`` lines from a file into the environment.
+
+    Keeping API keys in a ``.env`` file rather than in source is the usual
+    practice, and the parsing is short enough that requiring ``python-dotenv``
+    for it would cost more than it saves. Searches the given path, then each
+    parent directory, so it works from anywhere in a project.
+
+    .. code-block:: python
+
+        from mcdakit.ai_providers import anthropic, load_env
+
+        load_env()            # reads ./.env, or the nearest one above it
+        ask = anthropic()     # ANTHROPIC_API_KEY now set
+
+    Understands ``KEY=value``, ``export KEY=value``, quoted values, blank
+    lines and ``#`` comments. A variable already set in the environment is
+    left alone unless ``override`` is true — the real environment should win
+    over a file in a checkout, or deploying becomes surprising.
+
+    Returns the names it set, and their values, so a caller can see what came
+    from the file. Returns an empty mapping when no file is found: a missing
+    ``.env`` is the normal case in production, not an error.
+
+    **Never commit the file.** ``.env`` is in this project's ``.gitignore``
+    for that reason; do the same in yours.
+    """
+    start = pathlib.Path(path).expanduser()
+    if start.is_absolute() or start.parent != pathlib.Path("."):
+        candidates = [start]
+    else:
+        here = pathlib.Path.cwd()
+        candidates = [d / start.name for d in (here, *here.parents)]
+
+    found = next((c for c in candidates if c.is_file()), None)
+    if found is None:
+        return {}
+
+    loaded: dict = {}
+    for raw in found.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, _, value = line.partition("=")
+        name = name.removeprefix("export ").strip()
+        if not name:
+            continue
+        value = value.strip()
+        # Strip one matching pair of surrounding quotes, so a value with
+        # spaces or a trailing comment marker survives intact.
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if override or name not in os.environ:
+            os.environ[name] = value
+            loaded[name] = value
+    return loaded
 
 
 def _require_key(explicit: str | None, variable: str, provider: str) -> str:

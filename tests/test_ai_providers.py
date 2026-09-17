@@ -8,6 +8,7 @@ No network and no API key is involved.
 """
 
 import json
+import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -17,6 +18,7 @@ from mcdakit.ai_providers import (
     ProviderError,
     anthropic,
     google,
+    load_env,
     ollama,
     openai,
     openai_compatible,
@@ -266,7 +268,9 @@ class TestNoSdkIsRequired:
     #: than a check against `sys.stdlib_module_names`, which is Python 3.10+
     #: while this package supports 3.9 — and which would also silently admit
     #: any future stdlib addition. Adding a name here should be a decision.
-    PERMITTED = frozenset({"__future__", "collections", "json", "os", "time", "urllib"})
+    PERMITTED = frozenset(
+        {"__future__", "collections", "json", "os", "pathlib", "time", "urllib"}
+    )
 
     def test_the_module_imports_only_the_standard_library(self):
         """`pip install mcdakit` must be enough to reach every provider.
@@ -384,3 +388,82 @@ class TestBackoffAndTransportFailures:
             providers._post(
                 "http://127.0.0.1:1/x", {}, {}, timeout=1, retries=0, provider="X"
             )
+
+
+class TestLoadEnv:
+    """Keys belong in a file that is never committed, not in source."""
+
+    def write(self, tmp_path, text):
+        path = tmp_path / ".env"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_it_sets_a_plain_assignment(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        loaded = load_env(str(self.write(tmp_path, "ANTHROPIC_API_KEY=sk-ant-x\n")))
+        assert loaded == {"ANTHROPIC_API_KEY": "sk-ant-x"}
+        assert os.environ["ANTHROPIC_API_KEY"] == "sk-ant-x"
+
+    def test_a_provider_picks_the_key_up(self, tmp_path, monkeypatch, server):
+        """The point of the whole exercise."""
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        load_env(str(self.write(tmp_path, "ANTHROPIC_API_KEY=from-file\n")))
+        anthropic(base_url=f"{server}/v1")("hi")
+        assert STATE.last_headers["x-api-key"] == "from-file"
+
+    def test_it_understands_the_shell_forms(self, tmp_path, monkeypatch):
+        """People copy these straight out of a terminal or a vendor's docs."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+        loaded = load_env(
+            str(
+                self.write(
+                    tmp_path,
+                    "# a comment\n"
+                    "\n"
+                    "export OPENAI_API_KEY=sk-exported\n"
+                    'GOOGLE_API_KEY="sk-double-quoted"\n'
+                    "GEMINI_API_KEY='sk-single-quoted'\n"
+                    "not a pair\n",
+                )
+            )
+        )
+        assert loaded["OPENAI_API_KEY"] == "sk-exported"
+        assert loaded["GOOGLE_API_KEY"] == "sk-double-quoted"
+        assert loaded["GEMINI_API_KEY"] == "sk-single-quoted"
+
+    def test_the_real_environment_wins_by_default(self, tmp_path, monkeypatch):
+        """A file in a checkout must not silently override what the deployment
+        set, or running somewhere real becomes surprising."""
+        monkeypatch.setenv("OPENAI_API_KEY", "from-deployment")
+        loaded = load_env(str(self.write(tmp_path, "OPENAI_API_KEY=from-file\n")))
+        assert os.environ["OPENAI_API_KEY"] == "from-deployment"
+        assert loaded == {}
+
+    def test_override_is_available_when_wanted(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "from-deployment")
+        load_env(str(self.write(tmp_path, "OPENAI_API_KEY=from-file\n")), override=True)
+        assert os.environ["OPENAI_API_KEY"] == "from-file"
+
+    def test_a_missing_file_is_not_an_error(self, tmp_path):
+        """Production usually has no .env, and that is the normal case."""
+        assert load_env(str(tmp_path / "nothing-here")) == {}
+
+    def test_it_searches_upwards(self, tmp_path, monkeypatch):
+        """So a script in a subdirectory finds the project's file."""
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=found-above\n")
+        nested = tmp_path / "scripts" / "deep"
+        nested.mkdir(parents=True)
+        monkeypatch.chdir(nested)
+        assert load_env()["ANTHROPIC_API_KEY"] == "found-above"
+
+    def test_a_value_may_contain_an_equals_sign(self, tmp_path, monkeypatch):
+        """Base64-ish keys and URLs routinely do."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        loaded = load_env(str(self.write(tmp_path, "OPENAI_API_KEY=abc==def\n")))
+        assert loaded["OPENAI_API_KEY"] == "abc==def"
+
+    def test_a_blank_name_is_skipped(self, tmp_path):
+        assert load_env(str(self.write(tmp_path, "=orphaned\n"))) == {}
