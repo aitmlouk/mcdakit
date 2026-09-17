@@ -6,6 +6,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Provider adapters** (`mcdakit.ai_providers`): `openai()`, `anthropic()`,
+  `google()`, `ollama()` and `openai_compatible()` return ready-made `ask`
+  callables, reading `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and
+  `GOOGLE_API_KEY`/`GEMINI_API_KEY` from the environment. `openai_compatible`
+  covers any server exposing `/chat/completions` — vLLM, LM Studio,
+  llama.cpp, Groq, Together, OpenRouter — so a local model needs no key and
+  nothing leaves the machine.
+
+  **No provider SDK is required.** Each adapter speaks the vendor's HTTP API
+  through the standard library, so NumPy remains the only runtime dependency
+  and the one-dependency comparison in the paper still holds. A test parses
+  the module's imports and fails if any non-stdlib name appears.
+
+  Rate limits and transient 5xx are retried with exponential backoff
+  honouring the provider's `Retry-After`; a 400 is not retried, since it will
+  fail identically however often it is sent. A missing key names the
+  environment variable to set instead of surfacing a vendor 401, and an
+  unexpected reply shape names the provider and shows what arrived.
+
+  `mcdakit.ai` still takes any `Callable[[str], str]`, so an in-house gateway
+  or a test fixture works exactly as before. The adapters are a convenience,
+  not a requirement.
+
 ### Changed
 
 - `agreement()` returns `consensus: None` when two or more options tie for the

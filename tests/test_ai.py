@@ -251,17 +251,29 @@ class TestCritiqueWeights:
 class TestNoDependency:
     def test_the_package_imports_no_llm_client(self):
         """The one-dependency claim is a differentiator, and an AI feature
-        that quietly added a vendor SDK would forfeit it."""
+        that quietly added a vendor SDK would forfeit it.
+
+        Parsed rather than grepped: the provider adapters have functions
+        *named* ``openai`` and ``anthropic``, so a substring search finds
+        "import anthropic" in a docstring example that imports nothing of
+        the sort.
+        """
+        import ast
         import pathlib
 
         import mcdakit
 
         root = pathlib.Path(mcdakit.__file__).parent
-        forbidden = ("openai", "anthropic", "google.genai", "litellm", "requests")
+        forbidden = {"openai", "anthropic", "google", "litellm", "requests", "httpx"}
         for path in root.rglob("*.py"):
-            text = path.read_text()
-            for name in forbidden:
-                assert f"import {name}" not in text, f"{path} imports {name}"
+            for node in ast.walk(ast.parse(path.read_text())):
+                if isinstance(node, ast.Import):
+                    names = {a.name.split(".")[0] for a in node.names}
+                elif isinstance(node, ast.ImportFrom) and not node.level:
+                    names = {(node.module or "").split(".")[0]}
+                else:
+                    continue
+                assert not (names & forbidden), f"{path} imports {names & forbidden}"
 
     def test_any_callable_is_a_valid_provider(self):
         """No vendor is privileged; a lambda works."""

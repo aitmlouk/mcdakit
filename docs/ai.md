@@ -26,66 +26,63 @@ no LLM dependency.
 Ask = Callable[[str], str]
 ```
 
-That is the entire interface. Some working adapters:
+That is the entire interface, and it commits the package to no vendor.
 
-`````{tab-set}
-````{tab-item} Anthropic
+**Adapters ship with the package**, so for the common providers you need
+write nothing at all. They speak each vendor's HTTP API through the standard
+library — **no SDK to install**, and NumPy remains the only dependency:
+
 ```python
-import anthropic
+from mcdakit.ai_providers import openai, anthropic, google, ollama
 
-client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY
+ask = anthropic()                    # reads ANTHROPIC_API_KEY
+ask = openai()                       # reads OPENAI_API_KEY
+ask = google()                       # reads GOOGLE_API_KEY or GEMINI_API_KEY
+ask = ollama("llama3")               # local, no key, nothing leaves the machine
 
-def ask(prompt: str) -> str:
-    reply = client.messages.create(
-        model="claude-sonnet-5",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return reply.content[0].text
+ask = anthropic(model="claude-opus-5", api_key="sk-...")   # explicit
 ```
-````
 
-````{tab-item} OpenAI
+### Local and self-hosted models
+
+`ollama()` covers the usual local case. For anything exposing the
+OpenAI-compatible `/chat/completions` endpoint — **vLLM, LM Studio,
+llama.cpp's server, Groq, Together, OpenRouter, DeepSeek, Mistral** — one
+adapter reaches all of them:
+
 ```python
-from openai import OpenAI
+from mcdakit.ai_providers import openai_compatible
 
-client = OpenAI()  # reads OPENAI_API_KEY
-
-def ask(prompt: str) -> str:
-    reply = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return reply.choices[0].message.content
+ask = openai_compatible("mistral-7b", "http://localhost:8000/v1")   # vLLM
+ask = openai_compatible("llama-3.3-70b", "https://api.groq.com/openai/v1",
+                        api_key="gsk_...")
 ```
-````
 
-````{tab-item} Local (Ollama)
-```python
-import urllib.request, json
+Keeping the problem description, criteria and measurements on your own
+machine matters for commercially sensitive decisions, which is a large share
+of real MCDA work.
 
-def ask(prompt: str) -> str:
-    body = json.dumps({
-        "model": "llama3", "prompt": prompt, "stream": False,
-    }).encode()
-    request = urllib.request.Request(
-        "http://localhost:11434/api/generate", data=body,
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(request) as response:
-        return json.load(response)["response"]
-```
-````
+### What the adapters handle
 
-````{tab-item} Testing
+* **Rate limits.** A 429 or a transient 5xx is retried with exponential
+  backoff, honouring the provider's own `Retry-After`. A 400 is not retried:
+  it will fail identically however often it is sent.
+* **Missing keys.** `ProviderError: No API key for Anthropic. Set the
+  ANTHROPIC_API_KEY environment variable...` rather than a vendor 401.
+* **Changed reply shapes.** An unexpected response names the provider and
+  shows what arrived, instead of an `IndexError` from inside an adapter.
+* **Temperature 0 by default**, because `samples=2` measures whether the model
+  is consistent — sampling noise would corrupt that measurement.
+
+### Writing your own
+
+Nothing requires you to use them. Any callable works, so an in-house gateway,
+a cached fixture or an SDK you already trust drops straight in:
+
 ```python
 def ask(prompt: str) -> str:
-    """A fixture. Deterministic, no network, no key."""
-    return '''[{"name": "Price", "direction": "cost", "weight": 0.6},
-               {"name": "Quality", "direction": "benefit", "weight": 0.4}]'''
+    return my_company_gateway.complete(prompt)
 ```
-````
-`````
 
 Replies arrive as real models write them — wrapped in markdown fences, with a
 sentence of preamble before the JSON. The parsers expect that and extract the

@@ -25,6 +25,17 @@ module. No extra dependency is required.
    :members: propose_criteria, propose_weights, propose_comparisons, simulate_panel, narrate, critique_weights, AiProposal, WeightProposal, ComparisonProposal, PanelProposal, AiError
 ```
 
+### Providers
+
+Ready-made ``ask`` callables. These speak each vendor's HTTP API through the
+standard library, so no provider SDK is required and NumPy remains the only
+runtime dependency.
+
+```{eval-rst}
+.. automodule:: mcdakit.ai_providers
+   :members: openai, anthropic, google, ollama, openai_compatible, ProviderError
+```
+
 ## Explaining a result
 
 ```{eval-rst}
@@ -111,7 +122,7 @@ the rest of the API:
 
 .. py:data:: mcdakit.BUILTIN_METHODS
 
-   The eight :class:`~mcdakit.Method` classes this package ships, in reading
+   The seventeen :class:`~mcdakit.Method` classes this package ships, in reading
    order: simplest first, the reversal-free one last.
 ```
 

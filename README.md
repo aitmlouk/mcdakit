@@ -272,10 +272,16 @@ module imports only the standard library and NumPy.
 
 ```python
 from mcdakit.ai import propose_criteria, propose_weights
+from mcdakit.ai_providers import anthropic, ollama
 
-# `ask` is any callable mapping a prompt to a reply — no vendor is assumed
-# and no dependency is added.
-proposal = propose_criteria("selecting a component supplier", ask=my_model,
+ask = anthropic()          # reads ANTHROPIC_API_KEY
+ask = ollama("llama3")     # or a local model: no key, nothing leaves the machine
+
+# Adapters for OpenAI, Anthropic, Google, Ollama and any OpenAI-compatible
+# server (vLLM, LM Studio, llama.cpp, Groq, Together) ship with the package
+# and need no SDK. `ask` is any callable mapping a prompt to a reply, so an
+# in-house gateway works just as well.
+proposal = propose_criteria("selecting a component supplier", ask=ask,
                             samples=2)
 print(proposal)
 # 3 criteria proposed:
@@ -285,7 +291,7 @@ print(proposal)
 #   not applied — construct a Decision to accept
 
 weights = propose_weights("selecting a supplier", proposal.criteria,
-                          ask=my_model, matrix=matrix)
+                          ask=ask, matrix=matrix)
 weights.stability["level"]   # 'fragile' — flips at a 3.2% weight change
 weights.disagrees_with       # ('entropy', 'std') — objective schemes differ
 weights.accepted             # False. Applying it is your decision.
