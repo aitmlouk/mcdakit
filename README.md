@@ -552,14 +552,29 @@ carries seventeen and spends its surface area on stability instead.
 
 ## Documentation
 
-- [Quickstart](docs/quickstart.md) — describing a decision, ranking, reading a result
-- [Stability](docs/stability.md) — rank reversal, SPOTIS, sensitivity
-- [AI assistance](docs/ai.md) — connecting a model, and what gets checked
-- [Extending](docs/extending.md) — writing and shipping your own method
-- [Contributing](CONTRIBUTING.md) — house rules and the checks CI runs
-- [Design decisions](docs/adr/) — why the architecture is the way it is
+**[aitmlouk.github.io/mcdakit](https://aitmlouk.github.io/mcdakit)** — the full documentation, rebuilt
+from `main` on every push.
 
-Build them locally with `pip install -e ".[docs]" && sphinx-build -b html docs docs/_build/html`.
+| Page | For |
+|---|---|
+| [Quickstart](https://aitmlouk.github.io/mcdakit/quickstart.html) | Describing a decision, ranking, reading a result |
+| [Stability](https://aitmlouk.github.io/mcdakit/stability.html) | Rank reversal, SPOTIS, sensitivity — the *why* |
+| [AI assistance](https://aitmlouk.github.io/mcdakit/ai.html) | Connecting a model, and what gets checked |
+| [Extending](https://aitmlouk.github.io/mcdakit/extending.html) | Writing and shipping your own method |
+| [API reference](https://aitmlouk.github.io/mcdakit/api.html) | Every public name |
+| [Design decisions](https://aitmlouk.github.io/mcdakit/adr/) | Why the architecture is the way it is |
+
+Runnable scripts live in [`examples/`](examples/), including
+[`ai_assisted.py`](examples/ai_assisted.py), which needs no API key.
+[`CONTRIBUTING.md`](CONTRIBUTING.md) has the house rules and the checks CI runs.
+
+Build the site locally with:
+
+```bash
+pip install -e ".[docs]"
+sphinx-build -b html -W docs docs/_build/html
+open docs/_build/html/index.html
+```
 
 ## Licence
 

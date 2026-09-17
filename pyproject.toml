@@ -66,6 +66,7 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/aitmlouk/mcdakit"
+Documentation = "https://aitmlouk.github.io/mcdakit"
 Issues = "https://github.com/aitmlouk/mcdakit/issues"
 Changelog = "https://github.com/aitmlouk/mcdakit/blob/main/CHANGELOG.md"
 

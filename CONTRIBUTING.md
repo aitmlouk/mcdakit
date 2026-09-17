@@ -120,18 +120,20 @@ find in the docs is a name nobody uses.
 
 ### Hosting
 
-Two configurations are committed, and they are **alternatives — pick one**:
+The site is published to **GitHub Pages** at
+<https://aitmlouk.github.io/mcdakit> by `.github/workflows/docs.yml`, which
+builds on every push to `main` with warnings as errors.
 
-- `.readthedocs.yaml` — Read the Docs. Gives versioned docs (one build per
-  git tag), a search index, and PDF output. The convention in scientific
-  Python, and what a researcher will look for first. Needs an account at
-  readthedocs.org and the repository imported there.
-- `.github/workflows/docs.yml` — GitHub Pages. No third-party account; enable
-  under Settings → Pages → Source: GitHub Actions. Publishes `main` only, so
-  there is no version switcher.
+Deployment is gated on the repository being public, so while it is private the
+workflow builds and stops. It starts publishing by itself once the repository
+is made public and Pages is enabled under Settings → Pages → Source: GitHub
+Actions.
 
-Running both means two URLs that drift apart, and readers finding whichever
-ranks higher in search. Delete the one you are not using.
+A Read the Docs configuration was committed alongside this one and has been
+removed. Two hosts mean two URLs that drift apart, and readers finding
+whichever ranks higher in search; if you ever prefer Read the Docs — it offers
+versioned builds and PDF output, which this does not — delete the workflow at
+the same time as adding the configuration back.
 
 ## House rules
 
