@@ -138,6 +138,7 @@ reversal_check(matrix, criteria, method="topsis", labels=labels)
 | `vikor` | Compromise ranking | Opricovic & Tzeng, 2004 |
 | `electre` | ELECTRE I outranking | Roy, 1968 |
 | `promethee` | PROMETHEE II net flows, six preference shapes | Brans & Vincke, 1985 |
+| `copras` | Complex proportional assessment | Zavadskas et al., 1994 |
 | `spotis` | Rank-reversal-free | Dezert et al., 2020 |
 
 Every method returns scores where **higher is better**, including VIKOR and

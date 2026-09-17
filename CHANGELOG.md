@@ -8,6 +8,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **COPRAS** (`copras`), the first of the methods common to every other Python
+  MCDA library. Validated against the published formula of Zavadskas,
+  Kaklauskas and Sarka (1994) written out independently, and agreeing with
+  `pyrepo-mcda` and `pyDecision`. It resolves criterion direction itself and
+  so takes the matrix as measured; negative values are refused, since
+  sum-normalisation is defined for ratio-scale data.
+
 - **Explaining a ranking** (`mcdakit.explain`). `explain()` decomposes an
   option's score by criterion; `compare()` decomposes the margin between two
   options and identifies a criterion as *decisive* when reversing it alone

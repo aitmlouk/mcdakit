@@ -22,6 +22,7 @@ from mcdakit import (
     register_normalization,
     sensitivity,
 )
+from mcdakit.methods import BUILTIN_METHODS
 from mcdakit.methods.base import ScoringContext
 from mcdakit.methods.spotis import spotis
 
@@ -125,7 +126,7 @@ class TestMethodNamesView:
         assert "topsis" in repr(METHODS)
 
     def test_it_supports_len_and_membership(self):
-        assert len(METHODS) == 8
+        assert len(METHODS) == len(BUILTIN_METHODS)
         assert "spotis" in METHODS
         assert "nonsense" not in METHODS
 

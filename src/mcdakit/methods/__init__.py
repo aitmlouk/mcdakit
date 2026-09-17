@@ -11,6 +11,7 @@ Adding your own is the same contract the built-ins use — see
 """
 
 from .base import Method, MethodResult, ScoringContext, Wants
+from .copras import Copras, copras
 from .electre import Electre, electre
 from .promethee import (
     Promethee,
@@ -53,6 +54,7 @@ BUILTIN_METHODS = (
     Vikor,
     Electre,
     Promethee,
+    Copras,
     Spotis,
 )
 
@@ -74,6 +76,7 @@ __all__ = [
     "BUILTIN_METHODS",
     "ENTRY_POINT_GROUP",
     "BoundsWarning",
+    "Copras",
     "DuplicateMethodError",
     "Electre",
     "Method",
@@ -89,6 +92,7 @@ __all__ = [
     "Wants",
     "WeightedScoring",
     "available",
+    "copras",
     "electre",
     "flows",
     "get",

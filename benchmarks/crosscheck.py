@@ -147,6 +147,19 @@ def _pymcdm_promethee():
     return order(PROMETHEE_II("usual")(MATRIX, WEIGHTS, TYPES))
 
 
+def _pyrepo_copras():
+    from pyrepo_mcda.mcda_methods import COPRAS
+
+    with quiet():
+        return order(COPRAS()(MATRIX, WEIGHTS, TYPES))
+
+
+def _pymcdm_copras():
+    from pymcdm.methods import COPRAS
+
+    return order(COPRAS()(MATRIX, WEIGHTS, TYPES))
+
+
 def _pydecision_saw():
     from pyDecision.algorithm import saw_method
 
@@ -188,6 +201,10 @@ CHECKS = {
     "vikor": {"pymcdm": _pymcdm_vikor, "pyDecision": _pydecision_vikor},
     "promethee": {"pymcdm (usual)": _pymcdm_promethee},
     "saw": {"pyDecision": _pydecision_saw},
+    "copras": {
+        "pyrepo-mcda": _pyrepo_copras,
+        "pymcdm": _pymcdm_copras,
+    },
 }
 
 #: Differences already investigated and attributed, so that a known modelling
@@ -200,6 +217,13 @@ EXPECTED_DIFFERENCES = {
         "alternative with no cost advantage scores identically under both "
         "(Option 3: 0.840074), which isolates the difference to the cost "
         "transform."
+    ),
+    ("copras", "pymcdm"): (
+        "pymcdm's COPRAS computes Sp + (min(Sm)*Sm)/(Sm*(min(Sm)/Sm)), whose "
+        "second term simplifies identically to Sm, so it adds the cost total "
+        "rather than inverting it. pyrepo-mcda, pyDecision and the formula of "
+        "Zavadskas et al. (1994) all invert it, and mcdakit follows those "
+        "three."
     ),
     ("topsis", "pymcdm (default min-max)"): (
         "pymcdm defaults to min-max normalisation; mcdakit follows Hwang and "

@@ -293,8 +293,8 @@ class TestScoringContext:
 
 
 class TestBuiltins:
-    def test_all_eight_are_registered_on_import(self):
-        assert len(BUILTIN_METHODS) == 8
+    def test_every_builtin_is_registered_on_import(self):
+        assert len(BUILTIN_METHODS) >= 9
         for cls in BUILTIN_METHODS:
             assert has(cls.name)
 
@@ -306,9 +306,12 @@ class TestBuiltins:
         claiming = [c.name for c in BUILTIN_METHODS if c.reversal_free]
         assert claiming == ["spotis"]
 
-    def test_only_spotis_wants_raw_data(self):
-        raw = [c.name for c in BUILTIN_METHODS if c.wants is Wants.RAW]
-        assert raw == ["spotis"]
+    def test_raw_data_is_wanted_only_by_methods_that_resolve_direction(self):
+        """SPOTIS measures against fixed bounds and COPRAS separates benefit
+        from cost totals; both handle direction themselves, so orienting the
+        matrix first would apply the correction twice."""
+        raw = sorted(c.name for c in BUILTIN_METHODS if c.wants is Wants.RAW)
+        assert raw == ["copras", "spotis"]
 
     def test_available_describes_every_method(self):
         described = available()
