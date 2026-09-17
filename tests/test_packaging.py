@@ -195,6 +195,38 @@ class TestExamples:
         assert out.returncode == 0, out.stderr[-600:]
         assert "mcdakit" in out.stdout
 
+    def test_the_ai_example_runs_without_a_key(self):
+        """It must work offline: a reader without an API key is the common
+        case, and an example that needs one is an example nobody runs."""
+        import os
+        import subprocess
+        import sys
+
+        environment = dict(os.environ)
+        for key in (
+            "ANTHROPIC_API_KEY",
+            "OPENAI_API_KEY",
+            "GOOGLE_API_KEY",
+            "GEMINI_API_KEY",
+            "MCDAKIT_OLLAMA_MODEL",
+        ):
+            environment.pop(key, None)
+
+        out = subprocess.run(
+            [sys.executable, "examples/ai_assisted.py"],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=120,
+            env=environment,
+        )
+        assert out.returncode == 0, out.stderr[-600:]
+        assert "recorded replies" in out.stdout
+        # The two failures the example exists to show.
+        assert "INCONSISTENT" in out.stdout, "the consistency check must fire"
+        assert "faithful : False" in out.stdout, "narrate must catch the numbers"
+        assert "invented" in out.stdout
+
     def test_examples_hard_code_no_results(self):
         """Every figure must be computed at run time, or the examples drift
         away from the package without anything failing."""
