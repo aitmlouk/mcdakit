@@ -39,7 +39,9 @@ dev = [
     "mypy>=1.8",
     "vulture>=2.11",
 ]
-compare = ["pymcdm>=1.1"]
+# Cross-validation against independent implementations. Dev-only:
+# never a runtime dependency.
+compare = ["pymcdm>=1.1", "pyDecision>=5.0"]
 docs = [
     "sphinx>=7",
     "furo>=2024.1",

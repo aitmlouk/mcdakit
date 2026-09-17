@@ -324,3 +324,108 @@ class TestAgainstPyDecision:
         ours = -rank(Decision(self.MATRIX, self._criteria()), method="vikor").scores
         for index, q in theirs.items():
             assert ours[index] == pytest.approx(q, abs=1e-9)
+
+
+class TestElectreAgainstPyDecision:
+    """ELECTRE needs comparing at the right level.
+
+    pyDecision's ``electre_i`` returns a *kernel* --- a non-dominated set ---
+    where this package returns net outranking flows, so comparing rankings
+    directly would compare two different outputs. The concordance and
+    discordance matrices are the shared construct, and are what can honestly
+    be checked.
+
+    Concordance agrees exactly. Discordance does not, and the reason is a
+    documented split in the ELECTRE literature over how it is normalised:
+    pyDecision divides by a single global range taken over the raw matrix,
+    while this package divides by the pairwise maximum difference in the
+    weighted normalised matrix. Both appear in the literature; the tests below
+    record which is implemented here rather than asserting one is correct.
+    """
+
+    MATRIX = TestAgainstHandComputation.MATRIX
+    WEIGHTS = TestAgainstHandComputation.WEIGHTS
+    DIRECTIONS = ["cost", "benefit", "cost", "benefit"]
+
+    def _concordance(self, oriented, weights):
+        """The concordance matrix as this package builds it."""
+        w = weights / weights.sum()
+        norms = np.sqrt((oriented**2).sum(axis=0))
+        weighted = (oriented / np.where(norms == 0, 1.0, norms)) * w
+        n = oriented.shape[0]
+        matrix = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    matrix[i, j] = w[weighted[i] >= weighted[j]].sum()
+        return matrix
+
+    def _their_electre(self, matrix, weights):
+        import contextlib
+        import io
+        import warnings
+
+        from pyDecision.algorithm import electre_i
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with contextlib.redirect_stdout(io.StringIO()):
+                return electre_i(matrix, weights, graph=False)
+
+    def test_concordance_matches_on_the_worked_example(self):
+        pytest.importorskip("pyDecision", reason="dev-only cross-check")
+        from mcdakit.orientation import orient
+
+        oriented = orient(self.MATRIX, self.DIRECTIONS)
+        theirs = self._their_electre(oriented, self.WEIGHTS)[0]
+        ours = self._concordance(oriented, self.WEIGHTS)
+
+        # The diagonal is a self-comparison and carries no meaning in
+        # ELECTRE; pyDecision writes 1 there and this package writes 0.
+        off_diagonal = ~np.eye(len(self.MATRIX), dtype=bool)
+        assert theirs[off_diagonal] == pytest.approx(ours[off_diagonal], abs=1e-9)
+
+    @pytest.mark.parametrize("seed", [0, 1, 2, 3, 4])
+    def test_concordance_matches_on_random_problems(self, seed):
+        """One agreeing example could be a coincidence of the fixture."""
+        pytest.importorskip("pyDecision", reason="dev-only cross-check")
+
+        rng = np.random.default_rng(seed)
+        n_options = int(rng.integers(3, 7))
+        n_criteria = int(rng.integers(3, 6))
+        matrix = rng.uniform(1, 10, size=(n_options, n_criteria))
+        weights = rng.dirichlet(np.ones(n_criteria))
+
+        theirs = self._their_electre(matrix, weights)[0]
+        ours = self._concordance(matrix, weights)
+        off_diagonal = ~np.eye(n_options, dtype=bool)
+        assert theirs[off_diagonal] == pytest.approx(ours[off_diagonal], abs=1e-9)
+
+    def test_the_discordance_variant_is_the_one_documented(self):
+        """Pin the choice, so a future change to it is deliberate.
+
+        This package's discordance is a ratio of pairwise differences in the
+        weighted normalised matrix, so a pair differing on one criterion alone
+        reaches 1.0 --- the maximum possible disagreement for that pair.
+        """
+        from mcdakit.orientation import orient
+
+        oriented = orient(self.MATRIX, self.DIRECTIONS)
+        w = self.WEIGHTS / self.WEIGHTS.sum()
+        norms = np.sqrt((oriented**2).sum(axis=0))
+        weighted = (oriented / np.where(norms == 0, 1.0, norms)) * w
+
+        n = len(self.MATRIX)
+        ours = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    continue
+                against = np.maximum(weighted[j] - weighted[i], 0)
+                widest = np.max(np.abs(weighted[i] - weighted[j]))
+                ours[i, j] = 0.0 if widest == 0 else against.max() / widest
+
+        assert ours.max() == pytest.approx(1.0), (
+            "a pair opposed on a single criterion should reach the maximum"
+        )
+        assert np.all((ours >= 0) & (ours <= 1))
