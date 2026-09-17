@@ -74,6 +74,32 @@ of real MCDA work.
 * **Temperature 0 by default**, because `samples=2` measures whether the model
   is consistent — sampling noise would corrupt that measurement.
 
+### Verified against a real local model
+
+The adapters are tested against a local HTTP server answering in each vendor's
+response format, and the Ollama path has been exercised end to end against a
+running model. That test is worth describing, because it went wrong in the
+useful way.
+
+Asked to name criteria for choosing a laptop, a small local model
+(``qwen2.5:0.5b``) did well — four criteria, correct directions, all parsed:
+
+```
+['price' (cost), 'performance' (benefit), 'size' (cost), 'features' (benefit)]
+```
+
+Asked for weights, the same model replied with the single token ``['a']``.
+The package refused it by name:
+
+```
+AiError: The model omitted a weight for 'price'. It replied with: ['a']
+```
+
+No fallback weights were invented, no ``NaN`` entered the ranking, and the
+error says which criterion was missing and what actually arrived. A weak model
+fails loudly here rather than quietly producing a plausible-looking
+recommendation, which is the whole point of the arrangement.
+
 ### Writing your own
 
 Nothing requires you to use them. Any callable works, so an in-house gateway,
