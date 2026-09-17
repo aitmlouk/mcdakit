@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **ARAS, COCOSO, CODAS, EDAS, MABAC and MARCOS**, completing the set of
+  methods common to every other Python MCDA library. Each reproduces values
+  that `pymcdm` and `pyrepo-mcda` independently agree on, and matches `pymcdm`
+  on 40 random problems spanning different shapes, weightings and direction
+  mixtures. The package now provides sixteen methods.
 - **WASPAS** (`waspas`), blending the weighted sum and weighted product
   models under a `lambda_` parameter. Agrees with `pymcdm` and `pyrepo-mcda`
   to machine precision and with the published formula of Zavadskas et al.

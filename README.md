@@ -140,6 +140,12 @@ reversal_check(matrix, criteria, method="topsis", labels=labels)
 | `promethee` | PROMETHEE II net flows, six preference shapes | Brans & Vincke, 1985 |
 | `copras` | Complex proportional assessment | Zavadskas et al., 1994 |
 | `waspas` | Weighted sum and product blended | Zavadskas et al., 2012 |
+| `aras` | Additive ratio against a constructed optimum | Zavadskas & Turskis, 2010 |
+| `cocoso` | Combined compromise of three strategies | Yazdani et al., 2019 |
+| `codas` | Distance from the worst point | Keshavarz Ghorabaee et al., 2016 |
+| `edas` | Distance from the average solution | Keshavarz Ghorabaee et al., 2015 |
+| `mabac` | Border approximation area comparison | Pamucar & Cirovic, 2015 |
+| `marcos` | Utility against ideal and anti-ideal | Stevic et al., 2020 |
 | `spotis` | Rank-reversal-free | Dezert et al., 2020 |
 
 Every method returns scores where **higher is better**, including VIKOR and

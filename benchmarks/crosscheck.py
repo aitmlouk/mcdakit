@@ -173,6 +173,19 @@ def _pyrepo_waspas():
         return order(WASPAS()(MATRIX, WEIGHTS, TYPES))
 
 
+def _pymcdm_named(name):
+    """A pymcdm method invoked by name, for the many that share a signature."""
+
+    def check():
+        from pymcdm import methods as pm
+
+        return order(
+            np.asarray(getattr(pm, name)()(MATRIX, WEIGHTS, TYPES), dtype=float)
+        )
+
+    return check
+
+
 def _pydecision_saw():
     from pyDecision.algorithm import saw_method
 
@@ -218,6 +231,12 @@ CHECKS = {
         "pymcdm": _pymcdm_waspas,
         "pyrepo-mcda": _pyrepo_waspas,
     },
+    "aras": {"pymcdm": _pymcdm_named("ARAS")},
+    "cocoso": {"pymcdm": _pymcdm_named("COCOSO")},
+    "codas": {"pymcdm": _pymcdm_named("CODAS")},
+    "edas": {"pymcdm": _pymcdm_named("EDAS")},
+    "mabac": {"pymcdm": _pymcdm_named("MABAC")},
+    "marcos": {"pymcdm": _pymcdm_named("MARCOS")},
     "copras": {
         "pyrepo-mcda": _pyrepo_copras,
         "pymcdm": _pymcdm_copras,

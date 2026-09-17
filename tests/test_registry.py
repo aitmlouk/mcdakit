@@ -307,11 +307,35 @@ class TestBuiltins:
         assert claiming == ["spotis"]
 
     def test_raw_data_is_wanted_only_by_methods_that_resolve_direction(self):
-        """SPOTIS measures against fixed bounds and COPRAS separates benefit
-        from cost totals; both handle direction themselves, so orienting the
-        matrix first would apply the correction twice."""
+        """A method that reads criterion direction itself must receive the
+        matrix as measured; orienting it first applies the correction twice
+        and ranks cost criteria backwards."""
         raw = sorted(c.name for c in BUILTIN_METHODS if c.wants is Wants.RAW)
-        assert raw == ["copras", "spotis", "waspas"]
+        assert raw == [
+            "aras",
+            "cocoso",
+            "codas",
+            "copras",
+            "edas",
+            "mabac",
+            "marcos",
+            "spotis",
+            "waspas",
+        ]
+
+    def test_the_oriented_methods_are_the_classical_ones(self):
+        """The complement: methods written for benefit criteria, which the
+        library orients on their behalf."""
+        oriented = sorted(c.name for c in BUILTIN_METHODS if c.wants is not Wants.RAW)
+        assert oriented == [
+            "electre",
+            "promethee",
+            "saw",
+            "simple_scoring",
+            "topsis",
+            "vikor",
+            "weighted_scoring",
+        ]
 
     def test_available_describes_every_method(self):
         described = available()
