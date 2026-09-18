@@ -17,18 +17,17 @@ keywords:
   - sensitivity analysis
   - SPOTIS
   - TOPSIS
-references:
-  - type: article
-    title: "The SPOTIS Rank Reversal Free Method for Multi-Criteria Decision-Making Support"
-    authors:
-      - family-names: Dezert
-        given-names: Jean
-      - family-names: Tchamova
-        given-names: Albena
-      - family-names: Han
-        given-names: Deqiang
-      - family-names: Tacnet
-        given-names: Jean-Marc
-    year: 2020
-    conference:
-      name: "IEEE 23rd International Conference on Information Fusion (FUSION)"
+# The paper describing this software. Once it is published, replace the
+# journal, year, volume, pages and DOI with the real values and delete the
+# `notes` line; until then this records the work as submitted rather than
+# implying a citation that does not yet exist.
+preferred-citation:
+  type: article
+  title: "mcdakit: a Python package for multi-criteria decision analysis with stability guarantees"
+  authors:
+    - family-names: Ait-Mlouk
+      given-names: Addi
+      email: aitmlouk@gmail.com/addi.ait-mlouk@his.se
+  journal: "SoftwareX"
+  year: 2026
+  notes: "Submitted; not yet published. Volume, pages and DOI to be announced."
