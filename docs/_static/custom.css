@@ -43,9 +43,22 @@ div.highlight pre {
    background; a hairline border separates it from surrounding prose. */
 code.literal {
   border-radius: 4px;
-  padding: 0.12em 0.35em;
+  padding: 0.1em 0.3em;
   font-size: 0.87em;
-  border: 1px solid var(--color-background-border);
+  background: var(--color-background-secondary);
+}
+
+/* Inside an API signature or a parameter list the same rule drew a box
+   around every default value and single-letter argument — 633 of them on
+   the API page, which fought the signature's own background. There the
+   monospace font is distinction enough. */
+dl.py dt code.literal,
+dl.field-list code.literal,
+dl.py > dt .sig-param code.literal,
+code.xref.py {
+  background: none;
+  padding: 0;
+  border: none;
 }
 
 /* ---- Tables ----------------------------------------------------------- */
@@ -93,13 +106,31 @@ div.admonition {
 
 /* ---- API reference ---------------------------------------------------- */
 
+/* A brand-coloured rule marks where each entry begins.
+
+   The padding must clear Furo's hanging indent, not replace it: Furo sets
+   `padding-left: 3em` with `text-indent: -2.5em`, so the first line starts
+   0.5em in and continuation lines align 3em in. Overriding the padding with a
+   smaller value leaves the negative indent in place, which pulls the first
+   line about 29px to the LEFT of the border — straight through the word
+   `class`. Adding to 3em keeps the indent intact and the border clear. */
 dl.py.class > dt,
 dl.py.function > dt,
 dl.py.data > dt,
-dl.py.method > dt {
+dl.py.method > dt,
+dl.py.attribute > dt,
+dl.py.property > dt,
+dl.py.exception > dt {
   border-radius: 6px;
   border-left: 3px solid var(--color-brand-primary);
-  padding-left: 0.7rem;
+  /* Both halves of Furo's hanging indent must be replaced together. Setting
+     only the padding leaves `text-indent: -2.5em` in force, which pulls the
+     first line back across the border — the word `class` ends up drawn on
+     top of it. Zeroing the indent and using a plain padding keeps the first
+     line and the border apart; wrapped lines then align with the first,
+     which reads no worse for signatures this long. */
+  padding-left: 0.85rem;
+  text-indent: 0;
 }
 
 /* ---- Navigation ------------------------------------------------------- */
@@ -148,4 +179,39 @@ button:focus-visible {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ---- API signatures ---------------------------------------------------- */
+
+/* Furo floats the [source] link right at a fixed 4.25rem. A signature long
+   enough to reach it then runs underneath, and 34 of the signatures on the
+   API page exceed 80 characters — METHODS is 449. Reserving the gutter keeps
+   the text clear of the link instead of letting the two overlap. */
+dl.py > dt.sig-object {
+  padding-right: 5.25rem;
+  position: relative;
+}
+
+dl.py > dt.sig-object > a.reference.internal {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  float: none;
+}
+
+/* A long signature should break between arguments rather than mid-identifier,
+   so a name stays readable when it wraps. */
+dl.py > dt.sig-object {
+  overflow-wrap: break-word;
+}
+
+/* The pilcrow appears on hover; give it room so it never abuts the last
+   character of a name. */
+dl.py > dt.sig-object > a.headerlink {
+  margin-left: 0.4rem;
+}
+
+/* Long argument lists read better indented under the opening parenthesis. */
+dl.py > dt.sig-object .sig-param {
+  font-style: normal;
 }
