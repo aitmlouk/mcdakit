@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] - 2026-09-18
+
+The first published release. Version 0.1.0 below was tagged in the changelog
+during the initial port but never released, so this is what a user can
+actually install.
+
 ### Changed
 
 - `agreement()` returns `consensus: None` when two or more options tie for the
@@ -177,7 +185,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0] - 2026-08-27
 
-First release.
+The initial port from the Odoo module. Recorded here for continuity;
+never tagged and never published to PyPI.
 
 ### The package
 

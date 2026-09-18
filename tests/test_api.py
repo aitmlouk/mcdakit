@@ -1,5 +1,7 @@
 """The public API: rank(), compare_methods(), agreement(), reversal_check()."""
 
+import re
+
 import numpy as np
 import pytest
 
@@ -165,7 +167,11 @@ class TestPackage:
             assert hasattr(mcdakit, name), name
 
     def test_it_has_a_version(self):
-        assert mcdakit.__version__ == "0.1.0"
+        """Asserts the shape, not the number. Pinning the literal here made
+        every release bump a test failure while proving nothing:
+        ``test_packaging.py`` already checks that the package, the installed
+        metadata and ``CITATION.cff`` agree with each other."""
+        assert re.fullmatch(r"\d+\.\d+\.\d+(?:[-.].+)?", mcdakit.__version__)
 
     def test_no_odoo_anywhere(self):
         """Rule 1 of the brief: if this only works inside Odoo, it failed."""

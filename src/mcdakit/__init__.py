@@ -110,7 +110,7 @@ from .weighting import (
 #: The module costs nothing to have installed: it imports only the standard
 #: library and NumPy, and the model provider is injected by the caller.
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "BUILTIN_METHODS",
