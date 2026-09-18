@@ -9,6 +9,35 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,compare,docs]"
 ```
 
+## Branches
+
+`main` is the release branch: every commit on it is a state that could be
+tagged. `dev` is where work happens.
+
+```bash
+git switch dev
+# ... work, commit ...
+git push origin dev
+```
+
+CI runs the full matrix on both, so `dev` gets the same gate as `main` rather
+than deferring every failure to merge time. The documentation builds on both
+too — a broken `-W` build fails on `dev` before it can reach `main` — but only
+`main` publishes the site, so development pushes cannot overwrite what readers
+see.
+
+When `dev` is ready:
+
+```bash
+git switch main
+git merge --no-ff dev        # keeps the merge visible in the history
+git push origin main
+```
+
+Release from `main`: bump the version in `src/mcdakit/__init__.py` (the single
+source of truth; `CITATION.cff` is checked against it by the tests), move the
+`[Unreleased]` changelog entries under the new version, tag, and publish.
+
 ## Where things live
 
 ```
