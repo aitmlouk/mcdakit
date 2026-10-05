@@ -236,3 +236,63 @@ class TestExamples:
             # would not be.
             assert "0.7048" not in source, f"{name} hard-codes a score"
             assert 'fragile"' not in source, f"{name} hard-codes a verdict"
+
+
+class TestDocumentationExamplesRun:
+    """Code blocks in the guides are the first thing a reader tries.
+
+    Only `extending.md` and one `ai.md` workflow were checked before; the
+    quickstart and stability pages were not, and the stability page had
+    accumulated a block that opened with `rank(...)` and no import, so a
+    reader pasting it got a NameError on the first line.
+    """
+
+    #: Names standing in for something the reader supplies. A bare "..." is
+    #: deliberately not on this list: it appears inside comments showing
+    #: possible return values, and matching it skipped a block that runs.
+    PLACEHOLDERS = ("my_model", "your_", "vault.get", "my_company", "ask=ask")
+
+    @staticmethod
+    def is_placeholder(block, names):
+        if any(n in block for n in names):
+            return True
+        # A line that is only an ellipsis stands in for omitted code.
+        return any(line.strip() == "..." for line in block.splitlines())
+
+    def guide_blocks(self, name):
+        import re
+
+        text = (ROOT / "docs" / name).read_text()
+        return re.findall(r"```python\n(.*?)```", text, re.S)
+
+    @pytest.mark.parametrize("page", ["quickstart.md", "stability.md", "index.md"])
+    def test_the_first_block_of_each_guide_stands_alone(self, page):
+        """Whatever else a page does, its opening example must run on its own:
+        that is the one a reader pastes into an empty file."""
+        import contextlib
+        import io
+
+        blocks = self.guide_blocks(page)
+        assert blocks, f"{page} has no python block"
+        first = blocks[0]
+        assert not self.is_placeholder(first, self.PLACEHOLDERS), (
+            f"{page}: the opening block is a placeholder; a reader has nothing"
+            " runnable to start from"
+        )
+        namespace: dict = {}
+        with contextlib.redirect_stdout(io.StringIO()):
+            exec(compile(first, f"{page}:1", "exec"), namespace)
+
+    @pytest.mark.parametrize("page", ["quickstart.md", "stability.md"])
+    def test_every_block_on_a_page_runs_in_sequence(self, page):
+        """Later blocks may build on earlier ones, as a tutorial should, but
+        the page as a whole has to execute."""
+        import contextlib
+        import io
+
+        namespace: dict = {}
+        for index, block in enumerate(self.guide_blocks(page), start=1):
+            if self.is_placeholder(block, self.PLACEHOLDERS):
+                continue
+            with contextlib.redirect_stdout(io.StringIO()):
+                exec(compile(block, f"{page}:{index}", "exec"), namespace)
