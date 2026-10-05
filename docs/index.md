@@ -28,9 +28,11 @@ api
 :maxdepth: 1
 :caption: Project
 
+limitations
 contributing
 adr/index
 changelog
+citing
 ```
 
 ## Install
@@ -73,6 +75,8 @@ sensitivity(result)["level"]  # 'fragile'
 | Add your own method | [Extending](extending.md) |
 | Look up a function | [API reference](api.md) |
 | Know why it is built this way | [Design decisions](adr/index.md) |
+| Know what it does *not* do | [Limitations](limitations.md) |
+| Cite it | [Citing](citing.md) |
 
 ## What is here
 
