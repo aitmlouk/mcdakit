@@ -35,17 +35,16 @@ jobs:
         with:
           path: docs/_build/html
 
-  # GitHub Pages needs a public repository on the free plan, so this step is
-  # skipped while the repo is private rather than failing every push. It
-  # starts working by itself once the repo is made public and Pages is
-  # enabled (Settings -> Pages -> Source: GitHub Actions).
   # Only main publishes. A dev push still builds above, so a broken -W build
   # is caught before it reaches main, but it must not overwrite the live site.
+  #
+  # The visibility check this once carried was dropped: `event.repository` is
+  # populated for a push but not for workflow_dispatch, so a manual run
+  # skipped the deploy on a public repository. Pages simply fails on a private
+  # repo, which is the clearer signal anyway.
   deploy:
     needs: build
-    if: >-
-      github.event.repository.visibility == 'public'
-      && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
