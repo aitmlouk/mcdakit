@@ -11,16 +11,25 @@ Measured over 400 random 5×4 problems, removing the last-placed option:
 | Method | Rank reversal rate |
 |---|---|
 | `simple_scoring` | 0.0% † |
+| `wpm` | 0.0% † |
 | **`spotis`** | **0.0%** |
-| `saw` | 1.8% |
+| `saw`, `waspas`, `marcos` | 1.8% |
+| `aras` | 12.0% |
+| `copras` | 15.0% |
+| `codas` | 17.0% |
 | `electre` | 18.5% |
+| `edas` | 18.8% |
 | `topsis` | 19.2% |
-| `weighted_scoring` | 27.5% |
+| `weighted_scoring`, `mabac` | 27.5% |
 | `promethee` | 29.8% |
 | `vikor` | 33.8% |
+| `cocoso` | 49.0% |
 
-† `simple_scoring` is stable only because it ignores weights *and*
-normalisation — unusable on mixed units, not trustworthy.
+† Two other methods measure zero here, for reasons that do not generalise.
+`simple_scoring` ignores weights *and* normalisation, which makes it stable
+and unusable on mixed units. `wpm` divides by the column maximum, which the
+last-placed option rarely sets in this all-benefit setup. Only SPOTIS is
+reversal-free by construction.
 
 Reproduce with `python benchmarks/reversal.py`. Rates are setup-dependent; see
 the README for why `saw` looks so stable in this particular experiment.
@@ -56,9 +65,17 @@ Without bounds, SPOTIS falls back to observed min/max — which move when the
 option set moves, defeating the point. `mcdakit` warns and reports it:
 
 ```python
+from mcdakit import Criterion, rank
+
+criteria = [
+    Criterion("Price", 0.6, "cost", bounds=(2.0, 4.0)),
+    Criterion("Quality", 0.4, "benefit", bounds=(0, 10)),
+]
+matrix = [[2.75, 7.0], [2.90, 8.5], [3.40, 9.0]]
+
 result = rank(matrix, criteria, method="spotis")
-result.reversal_free   # False when any criterion lacked bounds
-result.warnings        # says which
+result.reversal_free   # True — every criterion carried bounds
+result.warnings        # empty; populated when bounds are missing
 ```
 
 In a pipeline that depends on the guarantee, insist:
@@ -74,6 +91,7 @@ warnings.simplefilter("error", BoundsWarning)
 ```python
 from mcdakit import reversal_check
 
+labels = ["A", "B", "C"]
 reversal_check(matrix, criteria, method="topsis", labels=labels)
 # {'reversed': True, 'cases': [{'removed': ..., 'before': [...], 'after': [...]}]}
 ```
